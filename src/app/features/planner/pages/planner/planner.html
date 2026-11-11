@@ -1,0 +1,151 @@
+<app-page-header
+  title="Planificación"
+  subtitle="Organiza sesiones y horarios de estudio para el semestre."
+/>
+
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+  <div class="d-flex flex-wrap gap-2">
+    @for (f of [
+      { id: 'all', label: 'Todas' },
+      { id: 'pending', label: 'Pendientes' },
+      { id: 'completed', label: 'Completadas' },
+      { id: 'cancelled', label: 'Canceladas' }
+    ]; track f.id) {
+      <button
+        type="button"
+        class="btn btn-sm filter-btn"
+        [class.active]="filter() === f.id"
+        (click)="filter.set($any(f.id))"
+      >
+        {{ f.label }}
+      </button>
+    }
+  </div>
+  <button type="button" class="btn btn-primary-custom btn-sm" (click)="openForm()">
+    <i class="bi bi-plus-lg me-1"></i> Nueva sesión
+  </button>
+</div>
+
+@if (showForm()) {
+  <div class="card-custom p-3 p-md-4 mb-4">
+    <h2 class="h6 mb-3">Nueva sesión de estudio</h2>
+    <form (submit)="guardar($event)" class="row g-3" novalidate>
+      <div class="col-md-6">
+        <label class="form-label-custom" for="courseId">Curso</label>
+        <select id="courseId" class="form-select form-control-custom" [formField]="sesionFormulario.courseId">
+          @for (c of cursos; track c.id) {
+            <option [value]="c.id">{{ c.name }}</option>
+          }
+        </select>
+        @if (sesionFormulario.courseId().touched() && sesionFormulario.courseId().invalid()) {
+          @for (e of sesionFormulario.courseId().errors(); track $index) {
+            <div class="is-invalid-feedback d-block">{{ e.message }}</div>
+          }
+        }
+      </div>
+      <div class="col-md-6">
+        <label class="form-label-custom" for="title">Título</label>
+        <input
+          id="title"
+          class="form-control form-control-custom"
+          [formField]="sesionFormulario.title"
+          placeholder="Ej. Repaso de procesos"
+        />
+        @if (sesionFormulario.title().touched() && sesionFormulario.title().invalid()) {
+          @for (e of sesionFormulario.title().errors(); track $index) {
+            <div class="is-invalid-feedback d-block">{{ e.message }}</div>
+          }
+        }
+      </div>
+      <div class="col-12">
+        <label class="form-label-custom" for="description">Descripción</label>
+        <textarea
+          id="description"
+          class="form-control form-control-custom"
+          rows="2"
+          [formField]="sesionFormulario.description"
+        ></textarea>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label-custom" for="date">Fecha</label>
+        <input id="date" type="date" class="form-control form-control-custom" [formField]="sesionFormulario.date" />
+        @if (sesionFormulario.date().touched() && sesionFormulario.date().invalid()) {
+          @for (e of sesionFormulario.date().errors(); track $index) {
+            <div class="is-invalid-feedback d-block">{{ e.message }}</div>
+          }
+        }
+      </div>
+      <div class="col-md-4">
+        <label class="form-label-custom" for="startTime">Hora de inicio</label>
+        <input id="startTime" type="time" class="form-control form-control-custom" [formField]="sesionFormulario.startTime" />
+        @if (sesionFormulario.startTime().touched() && sesionFormulario.startTime().invalid()) {
+          @for (e of sesionFormulario.startTime().errors(); track $index) {
+            <div class="is-invalid-feedback d-block">{{ e.message }}</div>
+          }
+        }
+      </div>
+      <div class="col-md-4">
+        <label class="form-label-custom" for="duration">Duración (min)</label>
+        <input
+          id="duration"
+          type="number"
+          class="form-control form-control-custom"
+          [formField]="sesionFormulario.durationMinutes"
+          step="15"
+        />
+        @if (sesionFormulario.durationMinutes().touched() && sesionFormulario.durationMinutes().invalid()) {
+          @for (e of sesionFormulario.durationMinutes().errors(); track $index) {
+            <div class="is-invalid-feedback d-block">{{ e.message }}</div>
+          }
+        }
+      </div>
+      <div class="col-12 d-flex gap-2">
+        <button type="submit" class="btn btn-primary-custom btn-sm">Guardar sesión</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cancelForm()">Cancelar</button>
+      </div>
+    </form>
+  </div>
+}
+
+<div class="d-flex flex-column gap-3">
+  @for (s of listaSesiones(); track s.id) {
+    <article class="session-card card-custom p-3">
+      <div class="d-flex flex-wrap gap-3 align-items-start">
+        <div class="session-time text-center">
+          <div class="fw-bold">{{ s.startTime }}</div>
+          <div class="text-xs text-muted-custom">{{ s.durationMinutes }} min</div>
+        </div>
+        <div class="flex-grow-1 min-w-0">
+          <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+            <span class="badge rounded-pill text-bg-light text-xs">{{ s.courseName }}</span>
+            <span
+              class="badge rounded-pill text-xs"
+              [class.text-bg-success]="s.status === 'completed'"
+              [class.text-bg-secondary]="s.status === 'cancelled'"
+              [class.text-bg-warning]="s.status === 'pending'"
+            >
+              {{ statusLabel(s.status) }}
+            </span>
+          </div>
+          <h3 class="h6 mb-1">{{ s.title }}</h3>
+          <p class="text-small text-muted-custom mb-1">{{ s.date }}</p>
+          @if (s.description) {
+            <p class="text-small mb-2">{{ s.description }}</p>
+          }
+          @if (s.status === 'pending') {
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-sm btn-primary-custom" (click)="complete(s)">Completar</button>
+              <button type="button" class="btn btn-sm btn-outline-secondary" (click)="cancel(s)">Cancelar</button>
+            </div>
+          }
+        </div>
+      </div>
+    </article>
+  } @empty {
+    <app-empty-state
+      icon="bi-calendar-x"
+      title="Sin sesiones"
+      message="Crea una nueva sesión de estudio para organizar tu semana."
+    />
+  }
+</div>

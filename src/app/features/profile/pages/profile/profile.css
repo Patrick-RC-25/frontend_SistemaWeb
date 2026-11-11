@@ -1,0 +1,11 @@
+.profile-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #a7f3d0, #6ee7b7);
+  color: #064e3b;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  font-size: 1rem;
+}

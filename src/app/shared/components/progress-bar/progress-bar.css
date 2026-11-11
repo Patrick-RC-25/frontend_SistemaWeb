@@ -1,0 +1,17 @@
+.progress-track {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.35s ease;
+  background: var(--color-primary);
+}
+
+.progress-fill[data-tone='success'] { background: var(--color-success); }
+.progress-fill[data-tone='warning'] { background: var(--color-warning); }
+.progress-fill[data-tone='danger'] { background: var(--color-danger); }

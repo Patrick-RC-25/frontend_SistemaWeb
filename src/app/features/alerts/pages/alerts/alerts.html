@@ -1,0 +1,40 @@
+<app-page-header
+  title="Alertas"
+  subtitle="Avisos sobre evaluaciones, tareas y aspectos que requieren tu atención."
+/>
+
+<div class="filter-bar d-flex flex-wrap gap-2 mb-4">
+  @for (f of [
+    { id: 'all', label: 'Todas' },
+    { id: 'pending', label: 'Pendientes' },
+    { id: 'urgent', label: 'Urgentes' },
+    { id: 'important', label: 'Importantes' },
+    { id: 'suggestion', label: 'Sugerencias' },
+    { id: 'completed', label: 'Atendidas' }
+  ]; track f.id) {
+    <button
+      type="button"
+      class="btn btn-sm filter-btn"
+      [class.active]="filter() === f.id"
+      (click)="setFilter($any(f.id))"
+    >
+      {{ f.label }}
+    </button>
+  }
+</div>
+
+<div class="d-flex flex-column gap-3">
+  @for (alert of listaAlertas(); track alert.id) {
+    <app-alert-card
+      [alert]="alert"
+      (markDone)="onMarkDone($event)"
+      (action)="onAction($event)"
+    />
+  } @empty {
+    <app-empty-state
+      icon="bi-bell-slash"
+      title="Sin alertas en este filtro"
+      message="Cambia el filtro o vuelve más tarde cuando haya nuevas notificaciones."
+    />
+  }
+</div>

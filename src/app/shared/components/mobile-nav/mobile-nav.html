@@ -1,0 +1,15 @@
+<nav class="mobile-nav d-md-none">
+  @for (item of items; track item.path) {
+    <a
+      class="mobile-nav-item"
+      [routerLink]="item.path"
+      routerLinkActive="active"
+    >
+      <i class="bi" [class]="item.icon"></i>
+      <span>{{ item.label }}</span>
+      @if (item.path === '/alertas' && activeAlerts() > 0) {
+        <span class="dot"></span>
+      }
+    </a>
+  }
+</nav>

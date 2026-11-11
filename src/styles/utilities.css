@@ -3,6 +3,10 @@
   font-size: 0.875rem;
 }
 
+.text-xs {
+  font-size: 0.75rem;
+}
+
 /* Cursor */
 .cursor-pointer {
   cursor: pointer;
@@ -12,9 +16,26 @@
 .content-container {
   width: 100%;
   min-width: 0;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 /* Transiciones */
 .transition-custom {
   transition: all 0.2s ease;
+}
+
+/* Truncate */
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Gap helpers */
+.gap-2 {
+  gap: 0.5rem;
+}
+.gap-3 {
+  gap: 1rem;
 }

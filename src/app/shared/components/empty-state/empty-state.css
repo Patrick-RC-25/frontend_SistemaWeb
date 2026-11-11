@@ -1,0 +1,24 @@
+.empty-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto;
+  border-radius: 16px;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+}
+
+.empty-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
+
+.empty-message {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  max-width: 320px;
+  margin-inline: auto;
+}

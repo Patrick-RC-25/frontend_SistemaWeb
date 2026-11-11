@@ -1,0 +1,36 @@
+.logo-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--color-primary), #7c3aed);
+  color: white;
+  font-size: 1.1rem;
+}
+
+.logo-name {
+  display: block;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.1;
+  color: var(--color-text);
+}
+
+.logo-tag {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.logo-light .logo-name {
+  color: #fff;
+}
+
+.logo-light .logo-tag {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.logo-light .logo-mark {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  color: #0f172a;
+}

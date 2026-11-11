@@ -1,0 +1,67 @@
+<app-page-header
+  title="Rendimiento"
+  subtitle="Seguimiento de promedios, objetivos y evolución académica del semestre."
+/>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4">
+    <app-stat-card
+      label="Promedio general"
+      [value]="(data().generalAverage | number:'1.1-1') ?? '—'"
+      icon="bi-graph-up"
+      tone="primary"
+    />
+  </div>
+  <div class="col-6 col-md-4">
+    <app-stat-card
+      label="Meta del ciclo"
+      [value]="(data().targetAverage | number:'1.1-1') ?? '—'"
+      icon="bi-flag"
+      tone="success"
+    />
+  </div>
+  <div class="col-12 col-md-4">
+    <app-stat-card
+      label="Inicio de ciclo"
+      [value]="(data().initialAverage | number:'1.1-1') ?? '—'"
+      icon="bi-arrow-up-right"
+      tone="default"
+      [hint]="'+' + (((data().generalAverage - data().initialAverage) | number:'1.1-1') ?? '0') + ' pts'"
+    />
+  </div>
+</div>
+
+<div class="card-custom p-3 p-md-4 mb-4">
+  <h2 class="section-title h6 mb-3">Evolución semanal</h2>
+  <div class="chart-box">
+    <canvas #chartCanvas aria-label="Gráfico de evolución del promedio"></canvas>
+  </div>
+</div>
+
+<div class="card-custom p-3 p-md-4">
+  <h2 class="section-title h6 mb-3">Por curso</h2>
+  <div class="d-flex flex-column gap-3">
+    @for (c of data().courses; track c.courseId) {
+      <div>
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <span class="fw-medium text-small">{{ c.courseName }}</span>
+          <span class="text-small">
+            <strong>{{ c.average | number:'1.1-1' }}</strong>
+            <span
+              class="ms-1"
+              [class.text-success]="c.change > 0"
+              [class.text-danger]="c.change < 0"
+            >
+              ({{ c.change > 0 ? '+' : '' }}{{ c.change }})
+            </span>
+          </span>
+        </div>
+        <app-progress-bar
+          [value]="c.progressPercentage"
+          [showLabel]="false"
+          [tone]="c.average >= 16 ? 'success' : c.average < 14 ? 'danger' : 'warning'"
+        />
+      </div>
+    }
+  </div>
+</div>
