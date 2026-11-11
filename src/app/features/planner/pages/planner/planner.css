@@ -1,0 +1,20 @@
+.filter-btn {
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-weight: 500;
+  padding: 0.35rem 0.85rem;
+}
+.filter-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+.session-time {
+  min-width: 64px;
+  padding: 0.5rem;
+  background: var(--color-primary-light);
+  border-radius: 10px;
+  color: var(--color-primary);
+}

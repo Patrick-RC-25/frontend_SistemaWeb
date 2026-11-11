@@ -1,0 +1,50 @@
+.stat-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-top: 0.2rem;
+  line-height: 1.2;
+}
+
+.stat-hint {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 0.35rem;
+}
+
+.stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.stat-card[data-tone='success'] .stat-icon {
+  background: #dcfce7;
+  color: var(--color-success);
+}
+.stat-card[data-tone='warning'] .stat-icon {
+  background: #fef3c7;
+  color: #b45309;
+}
+.stat-card[data-tone='danger'] .stat-icon {
+  background: #fee2e2;
+  color: var(--color-danger);
+}
+.stat-card[data-tone='primary'] .stat-icon {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}

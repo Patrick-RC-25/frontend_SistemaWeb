@@ -1,0 +1,93 @@
+<app-page-header
+  title="Inicio"
+  [subtitle]="'Hola, ' + data().studentName + '. Aquí tienes el resumen de tu semestre.'"
+/>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <app-stat-card
+      label="Promedio actual"
+      [value]="data().currentAverage"
+      icon="bi-mortarboard"
+      tone="primary"
+      [hint]="'Meta: ' + data().targetAverage"
+    />
+  </div>
+  <div class="col-6 col-lg-3">
+    <app-stat-card
+      label="Alertas activas"
+      [value]="data().activeAlerts"
+      icon="bi-bell"
+      tone="warning"
+      hint="Requieren atención"
+    />
+  </div>
+  <div class="col-6 col-lg-3">
+    <app-stat-card
+      label="Pendientes hoy"
+      [value]="data().pendingMattersToday"
+      icon="bi-calendar-check"
+      tone="default"
+      hint="Sesiones y entregas"
+    />
+  </div>
+  <div class="col-6 col-lg-3">
+    <app-stat-card
+      label="Meta del semestre"
+      [value]="data().academicGoal.progressPercentage + '%'"
+      icon="bi-bullseye"
+      tone="success"
+      [hint]="data().academicGoal.currentValue + ' / ' + data().academicGoal.targetValue"
+    />
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-lg-7">
+    <div class="card-custom p-3 p-md-4 h-100">
+      <h2 class="section-title h6 mb-2">
+        <i class="bi bi-lightbulb text-warning me-1"></i> Recomendación prioritaria
+      </h2>
+      <p class="fw-semibold mb-1">{{ data().mainRecommendation }}</p>
+      <p class="text-small text-muted-custom mb-3">{{ data().recommendationDetail }}</p>
+      <div class="d-flex flex-wrap gap-2">
+        <a routerLink="/planificacion" class="btn btn-sm btn-primary-custom">Ir a planificación</a>
+        <a routerLink="/alertas" class="btn btn-sm btn-outline-secondary">Ver alertas</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card-custom p-3 p-md-4 h-100">
+      <h2 class="section-title h6 mb-3">Objetivo académico</h2>
+      <p class="text-small mb-2">{{ data().academicGoal.title }}</p>
+      <app-progress-bar
+        [value]="data().academicGoal.progressPercentage"
+        [showLabel]="true"
+        tone="success"
+      />
+      <p class="text-xs text-muted-custom mt-3 mb-0">
+        {{ data().academicGoal.description }}
+      </p>
+    </div>
+  </div>
+</div>
+
+<section>
+  <div class="d-flex align-items-center justify-content-between mb-3">
+    <h2 class="section-title h6 mb-0">Prioridades</h2>
+    <a routerLink="/alertas" class="text-small fw-semibold" style="color: var(--color-primary)">Ver todas</a>
+  </div>
+  <div class="d-flex flex-column gap-3">
+    @for (alert of data().priorityAlerts; track alert.id) {
+      <app-alert-card
+        [alert]="alert"
+        (markDone)="onMarkDone($event)"
+        (action)="onAction($event)"
+      />
+    } @empty {
+      <div class="card-custom p-4 text-center text-muted-custom">
+        No hay alertas prioritarias. ¡Buen trabajo!
+      </div>
+    }
+  </div>
+</section>

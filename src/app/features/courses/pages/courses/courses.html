@@ -1,0 +1,91 @@
+<app-page-header
+  title="Cursos"
+  subtitle="Consulta tus cursos, promedios y calificaciones del semestre."
+/>
+
+<div class="row g-3">
+  <div class="col-lg-5">
+    <div class="d-flex flex-column gap-2">
+      @for (course of courses(); track course.id) {
+        <button
+          type="button"
+          class="course-item card-custom text-start p-3"
+          [class.active]="selectedId() === course.id"
+          (click)="select(course)"
+        >
+          <div class="d-flex align-items-center gap-3">
+            <div class="course-badge">{{ course.shortName }}</div>
+            <div class="flex-grow-1 min-w-0">
+              <div class="fw-semibold truncate">{{ course.name }}</div>
+              <div class="text-xs text-muted-custom">{{ course.code }} · {{ course.credits }} créditos</div>
+            </div>
+            <div class="text-end">
+              <div class="fw-bold">{{ course.average | number:'1.1-1' }}</div>
+              <div class="text-xs" [class.text-success]="changeTone(course)==='success'" [class.text-danger]="changeTone(course)==='danger'">
+                {{ changeLabel(course) }}
+              </div>
+            </div>
+          </div>
+        </button>
+      } @empty {
+        <app-empty-state title="Sin cursos" message="Aún no hay cursos registrados." />
+      }
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    @if (selected(); as c) {
+      <div class="card-custom p-3 p-md-4">
+        <div class="d-flex justify-content-between align-items-start mb-3">
+          <div>
+            <h2 class="h5 mb-1">{{ c.name }}</h2>
+            <p class="text-small text-muted-custom mb-0">
+              {{ c.code }} · Docente: {{ c.teacher || '—' }}
+            </p>
+          </div>
+          <div class="text-end">
+            <div class="display-6 fw-bold" style="font-size: 1.75rem">{{ c.average | number:'1.1-1' }}</div>
+            <div class="text-xs text-muted-custom">Promedio actual</div>
+          </div>
+        </div>
+
+        <app-progress-bar [value]="c.average" [max]="20" tone="primary" />
+
+        <h3 class="h6 mt-4 mb-3">Calificaciones</h3>
+        @if (selectedGrades().length) {
+          <div class="table-responsive">
+            <table class="table table-sm align-middle mb-0">
+              <thead>
+                <tr class="text-muted-custom text-xs">
+                  <th>Evaluación</th>
+                  <th>Tipo</th>
+                  <th>Nota</th>
+                  <th>Peso</th>
+                  <th>Fecha</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (g of selectedGrades(); track g.id) {
+                  <tr>
+                    <td class="fw-medium">{{ g.name }}</td>
+                    <td class="text-capitalize text-small">{{ g.type }}</td>
+                    <td class="fw-semibold">{{ g.score }}</td>
+                    <td>{{ g.weight }}%</td>
+                    <td class="text-small text-muted-custom">{{ g.date }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <p class="text-small text-muted-custom mb-0">Aún no hay calificaciones registradas para este curso.</p>
+        }
+      </div>
+    } @else {
+      <div class="card-custom p-5 text-center text-muted-custom">
+        <i class="bi bi-book display-6 d-block mb-2 opacity-50"></i>
+        Selecciona un curso para ver el detalle y las calificaciones.
+      </div>
+    }
+  </div>
+</div>

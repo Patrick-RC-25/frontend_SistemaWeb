@@ -1,0 +1,11 @@
+<div class="progress-wrap">
+  @if (showLabel) {
+    <div class="d-flex justify-content-between text-small mb-1">
+      <span class="text-muted-custom">Progreso</span>
+      <span class="fw-semibold">{{ percent }}%</span>
+    </div>
+  }
+  <div class="progress-track">
+    <div class="progress-fill" [style.width.%]="percent" [attr.data-tone]="tone"></div>
+  </div>
+</div>

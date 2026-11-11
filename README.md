@@ -1,59 +1,42 @@
-# Frontend
+# CarlitoApp — Frontend
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.0.
+## Alcance de esta etapa
 
-## Development server
+Este repositorio contiene únicamente el frontend de CarlitoApp. El objetivo inmediato es terminar la experiencia visual y las interacciones de la aplicación web antes de iniciar el backend.
 
-To start a local development server, run:
+- Framework: Angular 22 con TypeScript.
+- Estilos: Bootstrap 5, Bootstrap Icons y CSS personalizado.
+- Formularios: Angular Signal Forms.
+- Navegación: Angular Router.
+- Gráficos: Chart.js.
+- Mensajes y confirmaciones: SweetAlert2.
+- Datos: información simulada centralizada en `MockDataService` y consumida mediante servicios de cada módulo.
+
+## Módulos del frontend
+
+- Inicio de sesión (simulado).
+- Inicio / Dashboard.
+- Alertas.
+- Cursos y calificaciones.
+- Rendimiento académico.
+- Planificación de sesiones de estudio.
+- Perfil, objetivos y preferencias.
+
+## Fuera del alcance actual
+
+No implementar todavía FastAPI, endpoints, autenticación real, base de datos, repositorios, modelos Pydantic ni conexión HTTP. La integración con el backend se realizará en una etapa posterior, con OpenCode como herramienta de apoyo.
+
+## Desarrollo local
+
+```bash
+npm install
+npm start
+```
+
+Si el proyecto no tiene el script `start`, ejecutar:
 
 ```bash
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
-
-## Code scaffolding
-
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
-
-```bash
-ng generate component component-name
-```
-
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
-
-```bash
-ng generate --help
-```
-
-## Building
-
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+La aplicación se sirve normalmente en `http://localhost:4200`.

@@ -1,0 +1,41 @@
+.alert-card.completed {
+  opacity: 0.7;
+}
+
+.alert-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-size: 1.15rem;
+  background: #f1f5f9;
+  color: var(--color-text-muted);
+}
+
+.alert-icon[data-priority='urgent'] {
+  background: #fef2f2;
+  color: var(--color-danger);
+}
+.alert-icon[data-priority='important'] {
+  background: #fffbeb;
+  color: #b45309;
+}
+.alert-icon[data-priority='suggestion'] {
+  background: #ecfdf5;
+  color: var(--color-success);
+}
+
+.alert-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--color-text);
+}
+
+.alert-detail {
+  color: var(--color-text-muted);
+  margin: 0;
+  line-height: 1.45;
+}
