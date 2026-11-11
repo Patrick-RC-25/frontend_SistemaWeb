@@ -1,0 +1,32 @@
+/* Tarjetas generales */
+.card-custom {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-card);
+}
+
+/* Títulos */
+.section-title {
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+/* Texto secundario */
+.text-muted-custom {
+  color: var(--color-text-muted);
+}
+
+/* Botón principal */
+.btn-primary-custom {
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--border-radius-sm);
+  padding: 10px 18px;
+}
+
+.btn-primary-custom:hover {
+  background-color: #4338ca;
+  color: white;
+}
