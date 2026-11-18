@@ -1,32 +1,29 @@
-<article class="alert-card card-custom p-3" [class.completed]="alert.completed">
+<article class="alert-card card-custom p-3" [class.read]="alert.read">
   <div class="d-flex gap-3">
-    <div class="alert-icon" [attr.data-priority]="alert.priority">
+    <div class="alert-icon" [attr.data-kind]="alert.kind">
       <i class="bi" [class]="kindIcon(alert.kind)"></i>
     </div>
     <div class="flex-grow-1 min-w-0">
       <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-        <span class="badge rounded-pill text-xs fw-semibold"
-              [class.badge-urgent]="alert.priority === 'urgent'"
-              [class.badge-important]="alert.priority === 'important'"
-              [class.badge-suggestion]="alert.priority === 'suggestion'">
-          {{ priorityLabel(alert.priority) }}
-        </span>
-        <span class="text-xs text-muted-custom">{{ alert.courseName }}</span>
+        <span class="badge rounded-pill text-bg-light text-xs fw-semibold">{{ alert.kindLabel }}</span>
+        @if (alert.courseName) {
+          <span class="text-xs text-muted-custom">{{ alert.courseName }}</span>
+        }
       </div>
       <h3 class="alert-title">{{ alert.title }}</h3>
       <p class="alert-date text-small text-muted-custom mb-1">{{ alert.date }}</p>
       <p class="alert-detail text-small mb-3">{{ alert.detail }}</p>
       <div class="d-flex flex-wrap gap-2">
-        @if (!alert.completed) {
+        @if (!alert.read) {
           <button type="button" class="btn btn-sm btn-primary-custom" (click)="action.emit(alert)">
             {{ alert.actionLabel }}
           </button>
-          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="markDone.emit(alert.id)">
-            Marcar atendido
+          <button type="button" class="btn btn-sm btn-outline-secondary" (click)="markRead.emit(alert.id)">
+            Marcar como leída
           </button>
         } @else {
           <span class="text-small text-success fw-semibold">
-            <i class="bi bi-check-circle-fill me-1"></i> Atendido
+            <i class="bi bi-check-circle-fill me-1"></i> Leído
           </span>
         }
       </div>

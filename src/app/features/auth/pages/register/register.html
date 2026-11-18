@@ -1,0 +1,89 @@
+<div class="auth-page">
+  <section class="auth-hero">
+    <span class="shape blue-dot"></span>
+    <span class="shape pink-shape"></span>
+    <span class="shape cyan-square"></span>
+    <span class="shape orange-burst"></span>
+    <div class="auth-hero-content">
+      <div class="auth-brand">Random<strong>Study</strong></div>
+      <h1>Crea tu cuenta<br>y empieza hoy</h1>
+      <p>
+        Regístrate para organizar cursos, evaluaciones, sesiones de estudio y alertas
+        en un solo lugar.
+      </p>
+    </div>
+  </section>
+
+  <section class="auth-panel">
+    <div class="auth-panel-inner">
+      <h2>Crear cuenta</h2>
+      <p class="auth-subtitle">Completa tus datos para registrarte.</p>
+
+      <form (submit)="guardar($event)" novalidate>
+        <div class="row g-2">
+          <div class="col-md-6">
+            <label class="form-label" for="nombres">Nombres *</label>
+            <input id="nombres" class="form-control auth-input" [formField]="formReg.nombres" />
+            @if (formReg.nombres().touched() && formReg.nombres().invalid()) {
+              @for (e of formReg.nombres().errors(); track $index) {
+                <div class="text-danger small">{{ e.message }}</div>
+              }
+            }
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="apellidos">Apellidos *</label>
+            <input id="apellidos" class="form-control auth-input" [formField]="formReg.apellidos" />
+            @if (formReg.apellidos().touched() && formReg.apellidos().invalid()) {
+              @for (e of formReg.apellidos().errors(); track $index) {
+                <div class="text-danger small">{{ e.message }}</div>
+              }
+            }
+          </div>
+        </div>
+
+        <label class="form-label mt-2" for="email">Correo *</label>
+        <input id="email" type="email" class="form-control auth-input" [formField]="formReg.email" />
+        @if (formReg.email().touched() && formReg.email().invalid()) {
+          @for (e of formReg.email().errors(); track $index) {
+            <div class="text-danger small">{{ e.message }}</div>
+          }
+        }
+
+        <label class="form-label mt-2" for="password">Contraseña *</label>
+        <input id="password" type="password" class="form-control auth-input" [formField]="formReg.password" />
+        @if (formReg.password().touched() && formReg.password().invalid()) {
+          @for (e of formReg.password().errors(); track $index) {
+            <div class="text-danger small">{{ e.message }}</div>
+          }
+        }
+        <ul class="password-hints small text-muted mt-1 mb-0">
+          <li>Mínimo 8 caracteres</li>
+          <li>Al menos una mayúscula y una minúscula</li>
+          <li>Al menos un número</li>
+        </ul>
+
+        <label class="form-label mt-2" for="universidad">Universidad (opcional)</label>
+        <input id="universidad" class="form-control auth-input" [formField]="formReg.universidad" placeholder="Nombre de tu universidad" />
+
+        <label class="form-label mt-2" for="carrera">Carrera (opcional)</label>
+        <input id="carrera" class="form-control auth-input" [formField]="formReg.carrera" placeholder="Ej. Ingeniería de Sistemas" />
+
+        <label class="form-label mt-2" for="ciclo">Ciclo académico (opcional)</label>
+        <input id="ciclo" class="form-control auth-input" [formField]="formReg.ciclo" placeholder="Ej. 2026-II" />
+
+        @if (error()) {
+          <div class="alert alert-danger py-2 mt-3 mb-0">{{ error() }}</div>
+        }
+
+        <button type="submit" class="btn auth-btn-primary mt-4" [disabled]="loading()">
+          {{ loading() ? 'Registrando…' : 'Crear cuenta' }}
+        </button>
+      </form>
+
+      <div class="auth-signup mt-4">
+        ¿Ya tienes cuenta?
+        <a routerLink="/login"><strong>Inicia sesión</strong></a>
+      </div>
+    </div>
+  </section>
+</div>

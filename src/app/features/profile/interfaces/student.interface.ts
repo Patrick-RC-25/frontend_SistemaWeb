@@ -3,8 +3,9 @@ export interface Student {
   firstName: string;
   lastName: string;
   email: string;
+  university: string;
   career: string;
-  semester: number;
+  cycle: string;
   initials: string;
   avatarUrl?: string;
 }

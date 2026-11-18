@@ -1,36 +1,59 @@
-import { Component, inject, signal } from '@angular/core';
-import { form, FormField, required, email, min, max, minLength } from '@angular/forms/signals';
+import { Component, inject, signal, DestroyRef } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { forkJoin } from 'rxjs';
+import { form, FormField, required, minLength } from '@angular/forms/signals';
+import { finalize } from 'rxjs';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { ProgressBar } from '../../../../shared/components/progress-bar/progress-bar';
+import { LoadingSpinner } from '../../../../shared/components/loading-spinner/loading-spinner';
 import { ProfileService } from '../../services/profile.service';
 import { AuthService } from '../../../auth/services/auth.service';
 import { ProfileForm } from '../../interfaces/profile-form.interface';
-import { NotificationSettings } from '../../interfaces/notification-settings.interface';
 import { AcademicGoal } from '../../interfaces/academic-goal.interface';
 import { Student } from '../../interfaces/student.interface';
+import { getApiErrorMessage } from '../../../../core/api/api-error';
+
+interface GoalFormModel {
+  title: string;
+  description: string;
+  startDate: string;
+  limitDate: string;
+}
+
+function todayString(): string {
+  const date = new Date();
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
 
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [PageHeader, ProgressBar, FormField],
+  imports: [PageHeader, ProgressBar, LoadingSpinner, FormField],
   templateUrl: './profile.html',
   styleUrl: './profile.css',
 })
 export class Profile {
   private readonly profileService = inject(ProfileService);
   private readonly auth = inject(AuthService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly saved = signal(false);
-  readonly student = signal<Student>(this.profileService.mostrarEstudiante());
-  readonly goals = signal<AcademicGoal[]>(this.profileService.mostrarObjetivos());
+  readonly student = signal<Student | null>(null);
+  readonly goals = signal<AcademicGoal[]>([]);
+  readonly loading = signal(true);
+  readonly error = signal<string | null>(null);
+  readonly loadError = signal<string | null>(null);
+  readonly showGoalForm = signal(false);
+  readonly savingGoal = signal(false);
 
   /** Modelo perfil */
   private readonly perfilModelo = signal<ProfileForm>({
-    firstName: this.student().firstName,
-    lastName: this.student().lastName,
-    email: this.student().email,
-    career: this.student().career,
-    semester: this.student().semester,
+    firstName: '',
+    lastName: '',
+    university: '',
+    career: '',
+    cycle: '',
   });
 
   readonly perfilFormulario = form(this.perfilModelo, (esquema) => {
@@ -38,41 +61,131 @@ export class Profile {
     minLength(esquema.firstName, 2, { message: 'Mínimo 2 caracteres' });
     required(esquema.lastName, { message: 'Los apellidos son obligatorios' });
     minLength(esquema.lastName, 2, { message: 'Mínimo 2 caracteres' });
-    required(esquema.email, { message: 'El correo es obligatorio' });
-    email(esquema.email, { message: 'Correo no válido' });
-    required(esquema.career, { message: 'La carrera es obligatoria' });
-    required(esquema.semester, { message: 'El semestre es obligatorio' });
-    min(esquema.semester, 1, { message: 'Mínimo semestre 1' });
-    max(esquema.semester, 12, { message: 'Máximo semestre 12' });
+    minLength(esquema.university, 2, { message: 'Mínimo 2 caracteres' });
+    minLength(esquema.career, 2, { message: 'Mínimo 2 caracteres' });
   });
 
-  /** Modelo notificaciones */
-  private readonly notifModelo = signal<NotificationSettings>(
-    this.profileService.mostrarNotificaciones()
-  );
+  private readonly goalModel = signal<GoalFormModel>({
+    title: '', description: '', startDate: todayString(), limitDate: '',
+  });
 
-  readonly notifFormulario = form(this.notifModelo);
+  readonly goalForm = form(this.goalModel, (schema) => {
+    required(schema.title, { message: 'El título es obligatorio' });
+    minLength(schema.title, 3, { message: 'Mínimo 3 caracteres' });
+    required(schema.startDate, { message: 'La fecha de inicio es obligatoria' });
+  });
+
+  constructor() {
+    forkJoin({
+      student: this.profileService.mostrarEstudiante(this.auth.currentEmail() ?? ''),
+      goals: this.profileService.mostrarObjetivos(),
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: ({ student, goals }) => {
+          this.student.set(student);
+          this.goals.set(goals);
+          this.perfilModelo.set({
+            firstName: student.firstName,
+            lastName: student.lastName,
+            university: student.university,
+            career: student.career,
+            cycle: student.cycle,
+          });
+          this.loading.set(false);
+        },
+        error: (error) => {
+          this.loadError.set(getApiErrorMessage(error));
+          this.loading.set(false);
+        },
+      });
+  }
 
   guardarPerfil(evento: Event) {
     evento.preventDefault();
+
     if (this.perfilFormulario().invalid()) {
       this.perfilFormulario.firstName().markAsTouched();
       this.perfilFormulario.lastName().markAsTouched();
-      this.perfilFormulario.email().markAsTouched();
+      this.perfilFormulario.university().markAsTouched();
       this.perfilFormulario.career().markAsTouched();
-      this.perfilFormulario.semester().markAsTouched();
+      this.perfilFormulario.cycle().markAsTouched();
       return;
     }
+
     const datos: ProfileForm = { ...this.perfilModelo() };
-    this.profileService.guardarPerfil(datos);
-    this.student.set(this.profileService.mostrarEstudiante());
-    this.flashSaved();
+
+    this.profileService
+      .guardarPerfil(datos, this.auth.currentEmail() ?? '', this.student()?.avatarUrl ?? null)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (student) => {
+          this.student.set(student);
+          this.perfilModelo.set({
+            firstName: student.firstName,
+            lastName: student.lastName,
+            university: student.university,
+            career: student.career,
+            cycle: student.cycle,
+          });
+          
+          this.flashSaved();
+        },
+        error: (error: unknown) => this.error.set(getApiErrorMessage(error)),
+      });
   }
 
-  guardarNotificaciones(evento: Event) {
-    evento.preventDefault();
-    this.profileService.guardarNotificaciones({ ...this.notifModelo() });
-    this.flashSaved();
+
+  abrirObjetivo(): void {
+    this.goalModel.set({ title: '', description: '', startDate: todayString(), limitDate: '' });
+    this.error.set(null);
+    this.showGoalForm.set(true);
+  }
+
+  guardarObjetivo(event: Event): void {
+    event.preventDefault();
+    if (this.goalForm().invalid()) {
+      this.goalForm.title().markAsTouched();
+      this.goalForm.startDate().markAsTouched();
+      return;
+    }
+    const model = this.goalModel();
+    if (model.limitDate && model.limitDate < model.startDate) {
+      this.error.set('La fecha límite no puede ser anterior a la fecha de inicio.');
+      return;
+    }
+    this.savingGoal.set(true);
+    this.error.set(null);
+    this.profileService.crearObjetivo({
+      titulo: model.title,
+      descripcion: model.description,
+      fecha_inicio: model.startDate,
+      fecha_limite: model.limitDate || null,
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.savingGoal.set(false)),
+    ).subscribe({
+      next: (goal) => {
+        this.goals.update((items) => [...items, goal]);
+        this.showGoalForm.set(false);
+      },
+      error: (error: unknown) => this.error.set(getApiErrorMessage(error)),
+    });
+  }
+
+  completarObjetivo(goal: AcademicGoal): void {
+    this.profileService.completarObjetivo(goal).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (updated) => this.goals.update((items) => items.map((item) => item.id === goal.id ? updated : item)),
+      error: (error: unknown) => this.error.set(getApiErrorMessage(error)),
+    });
+  }
+
+  eliminarObjetivo(goal: AcademicGoal): void {
+    if (!confirm(`¿Eliminar el objetivo «${goal.title}»?`)) return;
+    this.profileService.eliminarObjetivo(goal.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: () => this.goals.update((items) => items.filter((item) => item.id !== goal.id)),
+      error: (error: unknown) => this.error.set(getApiErrorMessage(error)),
+    });
   }
 
   logout() {

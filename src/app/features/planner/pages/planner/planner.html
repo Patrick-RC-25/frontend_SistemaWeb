@@ -1,30 +1,91 @@
 <app-page-header
   title="Planificación"
-  subtitle="Organiza sesiones y horarios de estudio para el semestre."
+  subtitle="Consulta tus horarios de clase y organiza tus sesiones de estudio."
 />
+
+<section class="card-custom p-3 p-md-4 mb-4">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+    <div>
+      <h2 class="h6 mb-1">Horario de clases</h2>
+      <p class="text-xs text-muted-custom mb-0">Horarios registrados para tus cursos.</p>
+    </div>
+    <button type="button" class="btn btn-outline-primary btn-sm" [disabled]="loading() || cursos().length === 0" (click)="openScheduleForm()">
+      <i class="bi bi-plus-lg me-1"></i> Agregar horario
+    </button>
+  </div>
+
+  @if (showScheduleForm()) {
+    <form class="row g-2 mb-3 p-3 border rounded" (submit)="guardarHorario($event)" novalidate>
+      <div class="col-md-4">
+        <label class="form-label small" for="schedule-course">Curso</label>
+        <select id="schedule-course" class="form-select form-select-sm" [formField]="horarioFormulario.courseId">
+          @for (course of cursos(); track course.id) { <option [value]="course.id">{{ course.name }}</option> }
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small" for="schedule-day">Día</label>
+        <select id="schedule-day" class="form-select form-select-sm" [formField]="horarioFormulario.day">
+          @for (day of diasSemana; track day.id) { <option [value]="day.id">{{ day.nombre }}</option> }
+        </select>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small" for="schedule-start">Inicio</label>
+        <input id="schedule-start" type="time" class="form-control form-control-sm" [formField]="horarioFormulario.startTime" />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small" for="schedule-end">Fin</label>
+        <input id="schedule-end" type="time" class="form-control form-control-sm" [formField]="horarioFormulario.endTime" />
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small" for="schedule-room">Aula</label>
+        <input id="schedule-room" class="form-control form-control-sm" [formField]="horarioFormulario.classroom" placeholder="Opcional" />
+      </div>
+      <div class="col-12 d-flex gap-2">
+        <button type="submit" class="btn btn-primary-custom btn-sm" [disabled]="savingSchedule()">{{ savingSchedule() ? 'Guardando…' : 'Guardar horario' }}</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="showScheduleForm.set(false)">Cancelar</button>
+      </div>
+    </form>
+  }
+
+  <div class="d-flex flex-column gap-2">
+    @for (schedule of schedules(); track schedule.id) {
+      <div class="schedule-row d-flex flex-wrap justify-content-between align-items-center gap-2 p-2 rounded">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+          <span class="schedule-day">{{ nombreDia(schedule.day) }}</span>
+          <div>
+            <div class="fw-semibold text-small">{{ schedule.courseName }}</div>
+            <div class="text-xs text-muted-custom">{{ schedule.startTime }} – {{ schedule.endTime }}{{ schedule.classroom ? ' · Aula ' + schedule.classroom : '' }}</div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-danger" aria-label="Eliminar horario" (click)="eliminarHorario(schedule.id)"><i class="bi bi-trash"></i></button>
+      </div>
+    } @empty {
+      <p class="text-small text-muted-custom mb-0">Todavía no has registrado horarios de clase.</p>
+    }
+  </div>
+</section>
 
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
   <div class="d-flex flex-wrap gap-2">
-    @for (f of [
-      { id: 'all', label: 'Todas' },
-      { id: 'pending', label: 'Pendientes' },
-      { id: 'completed', label: 'Completadas' },
-      { id: 'cancelled', label: 'Canceladas' }
-    ]; track f.id) {
-      <button
-        type="button"
-        class="btn btn-sm filter-btn"
-        [class.active]="filter() === f.id"
-        (click)="filter.set($any(f.id))"
-      >
+    @for (f of sessionFilters; track f.id) {
+      <button type="button" class="btn btn-sm filter-btn" [class.active]="filter() === f.id" (click)="setSessionFilter(f.id)">
         {{ f.label }}
       </button>
     }
   </div>
-  <button type="button" class="btn btn-primary-custom btn-sm" (click)="openForm()">
+  <button
+    type="button"
+    class="btn btn-primary-custom btn-sm"
+    [disabled]="loading() || cursos().length === 0"
+    (click)="openForm()"
+  >
     <i class="bi bi-plus-lg me-1"></i> Nueva sesión
   </button>
 </div>
+
+@if (error()) {
+  <div class="alert alert-danger" role="alert">{{ error() }}</div>
+}
 
 @if (showForm()) {
   <div class="card-custom p-3 p-md-4 mb-4">
@@ -32,8 +93,12 @@
     <form (submit)="guardar($event)" class="row g-3" novalidate>
       <div class="col-md-6">
         <label class="form-label-custom" for="courseId">Curso</label>
-        <select id="courseId" class="form-select form-control-custom" [formField]="sesionFormulario.courseId">
-          @for (c of cursos; track c.id) {
+        <select
+          id="courseId"
+          class="form-select form-control-custom"
+          [formField]="sesionFormulario.courseId"
+        >
+          @for (c of cursos(); track c.id) {
             <option [value]="c.id">{{ c.name }}</option>
           }
         </select>
@@ -68,7 +133,12 @@
       </div>
       <div class="col-md-4">
         <label class="form-label-custom" for="date">Fecha</label>
-        <input id="date" type="date" class="form-control form-control-custom" [formField]="sesionFormulario.date" />
+        <input
+          id="date"
+          type="date"
+          class="form-control form-control-custom"
+          [formField]="sesionFormulario.date"
+        />
         @if (sesionFormulario.date().touched() && sesionFormulario.date().invalid()) {
           @for (e of sesionFormulario.date().errors(); track $index) {
             <div class="is-invalid-feedback d-block">{{ e.message }}</div>
@@ -77,7 +147,12 @@
       </div>
       <div class="col-md-4">
         <label class="form-label-custom" for="startTime">Hora de inicio</label>
-        <input id="startTime" type="time" class="form-control form-control-custom" [formField]="sesionFormulario.startTime" />
+        <input
+          id="startTime"
+          type="time"
+          class="form-control form-control-custom"
+          [formField]="sesionFormulario.startTime"
+        />
         @if (sesionFormulario.startTime().touched() && sesionFormulario.startTime().invalid()) {
           @for (e of sesionFormulario.startTime().errors(); track $index) {
             <div class="is-invalid-feedback d-block">{{ e.message }}</div>
@@ -93,59 +168,78 @@
           [formField]="sesionFormulario.durationMinutes"
           step="15"
         />
-        @if (sesionFormulario.durationMinutes().touched() && sesionFormulario.durationMinutes().invalid()) {
+        @if (
+          sesionFormulario.durationMinutes().touched() &&
+          sesionFormulario.durationMinutes().invalid()
+        ) {
           @for (e of sesionFormulario.durationMinutes().errors(); track $index) {
             <div class="is-invalid-feedback d-block">{{ e.message }}</div>
           }
         }
       </div>
       <div class="col-12 d-flex gap-2">
-        <button type="submit" class="btn btn-primary-custom btn-sm">Guardar sesión</button>
-        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cancelForm()">Cancelar</button>
+        <button type="submit" class="btn btn-primary-custom btn-sm" [disabled]="savingSession()">
+          {{ savingSession() ? 'Guardando…' : 'Guardar sesión' }}
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="cancelForm()">
+          Cancelar
+        </button>
       </div>
     </form>
   </div>
 }
 
-<div class="d-flex flex-column gap-3">
-  @for (s of listaSesiones(); track s.id) {
-    <article class="session-card card-custom p-3">
-      <div class="d-flex flex-wrap gap-3 align-items-start">
-        <div class="session-time text-center">
-          <div class="fw-bold">{{ s.startTime }}</div>
-          <div class="text-xs text-muted-custom">{{ s.durationMinutes }} min</div>
-        </div>
-        <div class="flex-grow-1 min-w-0">
-          <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-            <span class="badge rounded-pill text-bg-light text-xs">{{ s.courseName }}</span>
-            <span
-              class="badge rounded-pill text-xs"
-              [class.text-bg-success]="s.status === 'completed'"
-              [class.text-bg-secondary]="s.status === 'cancelled'"
-              [class.text-bg-warning]="s.status === 'pending'"
-            >
-              {{ statusLabel(s.status) }}
-            </span>
+@if (loading()) {
+  <app-loading-spinner message="Cargando sesiones..." />
+} @else {
+  <div class="d-flex flex-column gap-3">
+    @for (s of listaSesiones(); track s.id) {
+      <article class="session-card card-custom p-3">
+        <div class="d-flex flex-wrap gap-3 align-items-start">
+          <div class="session-time text-center">
+            <div class="fw-bold">{{ s.startTime }}</div>
+            <div class="text-xs text-muted-custom">{{ s.durationMinutes }} min</div>
           </div>
-          <h3 class="h6 mb-1">{{ s.title }}</h3>
-          <p class="text-small text-muted-custom mb-1">{{ s.date }}</p>
-          @if (s.description) {
-            <p class="text-small mb-2">{{ s.description }}</p>
-          }
-          @if (s.status === 'pending') {
-            <div class="d-flex gap-2">
-              <button type="button" class="btn btn-sm btn-primary-custom" (click)="complete(s)">Completar</button>
-              <button type="button" class="btn btn-sm btn-outline-secondary" (click)="cancel(s)">Cancelar</button>
+          <div class="flex-grow-1 min-w-0">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+              <span class="badge rounded-pill text-bg-light text-xs">{{ s.courseName }}</span>
+              <span
+                class="badge rounded-pill text-xs"
+                [class.text-bg-success]="s.status === 'completed'"
+                [class.text-bg-secondary]="s.status === 'cancelled'"
+                [class.text-bg-warning]="s.status === 'pending'"
+                [class.text-bg-info]="s.status === 'inProgress'"
+              >
+                {{ statusLabel(s.status) }}
+              </span>
             </div>
-          }
+            <h3 class="h6 mb-1">{{ s.title }}</h3>
+            <p class="text-small text-muted-custom mb-1">{{ s.date }}</p>
+            @if (s.description) {
+              <p class="text-small mb-2">{{ s.description }}</p>
+            }
+            @if (s.status === 'pending' || s.status === 'inProgress') {
+              <div class="d-flex gap-2">
+                @if (s.status === 'pending') {
+                  <button type="button" class="btn btn-sm btn-outline-primary" (click)="start(s)">Iniciar</button>
+                }
+                <button type="button" class="btn btn-sm btn-primary-custom" (click)="complete(s)">
+                  Completar
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="cancel(s)">
+                  Cancelar
+                </button>
+              </div>
+            }
+          </div>
         </div>
-      </div>
-    </article>
-  } @empty {
-    <app-empty-state
-      icon="bi-calendar-x"
-      title="Sin sesiones"
-      message="Crea una nueva sesión de estudio para organizar tu semana."
-    />
-  }
-</div>
+      </article>
+    } @empty {
+      <app-empty-state
+        icon="bi-calendar-x"
+        title="Sin sesiones"
+        message="Crea una nueva sesión de estudio para organizar tu semana."
+      />
+    }
+  </div>
+}

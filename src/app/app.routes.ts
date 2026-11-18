@@ -9,6 +9,12 @@ export const routes: Routes = [
       import('./features/auth/pages/login/login').then((m) => m.Login),
   },
   {
+    path: 'registro',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/auth/pages/register/register').then((m) => m.Register),
+  },
+  {
     path: '',
     canActivate: [authGuard],
     loadComponent: () => import('./layout/main-layout').then((m) => m.MainLayout),
@@ -18,6 +24,11 @@ export const routes: Routes = [
         path: 'inicio',
         loadComponent: () =>
           import('./features/dashboard/pages/dashboard/dashboard').then((m) => m.Dashboard),
+      },
+      {
+        path: 'tareas',
+        loadComponent: () =>
+          import('./features/tasks/pages/tasks/tasks').then((m) => m.Tasks),
       },
       {
         path: 'alertas',

@@ -1,74 +1,76 @@
-<div class="login-page">
-  <div class="login-card card-custom">
-    <div class="text-center mb-4">
-      <app-logo />
-      <p class="text-muted-custom mt-3 mb-0 text-small">
-        Organiza tu semestre, prioriza y evita la sobrecarga académica.
+<div class="auth-page">
+  <section class="auth-hero">
+    <span class="shape blue-dot"></span>
+    <span class="shape pink-shape"></span>
+    <span class="shape cyan-square"></span>
+    <span class="shape orange-burst"></span>
+    <div class="auth-hero-content">
+      <div class="auth-brand">Random<strong>Study</strong></div>
+      <h1>Organiza tu semestre<br>con claridad</h1>
+      <p>
+        Prioriza cursos, tareas y sesiones de estudio. Sigue tu rendimiento y evita
+        la sobrecarga académica.
       </p>
     </div>
+  </section>
 
-    <form (submit)="guardar($event)" class="p-1" novalidate>
-      <div class="mb-3">
-        <label class="form-label-custom" for="email">Correo institucional</label>
+  <section class="auth-panel">
+    <div class="auth-panel-inner">
+      <h2>¡Bienvenido!</h2>
+      <p class="auth-subtitle">Inicia sesión en tu cuenta.</p>
+
+      <form (submit)="guardar($event)" novalidate>
+        <label class="form-label" for="email">Correo *</label>
         <input
           id="email"
           type="email"
-          class="form-control form-control-custom"
+          class="form-control auth-input"
           [formField]="loginFormulario.email"
           autocomplete="username"
           placeholder="tu.correo@universidad.edu.pe"
         />
         @if (loginFormulario.email().touched() && loginFormulario.email().invalid()) {
           @for (e of loginFormulario.email().errors(); track $index) {
-            <div class="is-invalid-feedback d-block">{{ e.message }}</div>
+            <div class="text-danger small mb-2">{{ e.message }}</div>
           }
         }
-      </div>
 
-      <div class="mb-3">
-        <label class="form-label-custom" for="password">Contraseña</label>
+        <label class="form-label mt-3" for="password">Contraseña *</label>
         <div class="input-group">
           <input
             id="password"
             [type]="showPassword() ? 'text' : 'password'"
-            class="form-control form-control-custom"
+            class="form-control auth-input"
             [formField]="loginFormulario.password"
             autocomplete="current-password"
-            placeholder="••••••••"
           />
           <button
             type="button"
             class="btn btn-outline-secondary"
             (click)="showPassword.set(!showPassword())"
-            [attr.aria-label]="showPassword() ? 'Ocultar contraseña' : 'Mostrar contraseña'"
           >
             <i class="bi" [class.bi-eye]="!showPassword()" [class.bi-eye-slash]="showPassword()"></i>
           </button>
         </div>
         @if (loginFormulario.password().touched() && loginFormulario.password().invalid()) {
           @for (e of loginFormulario.password().errors(); track $index) {
-            <div class="is-invalid-feedback d-block">{{ e.message }}</div>
+            <div class="text-danger small mb-2">{{ e.message }}</div>
           }
         }
-      </div>
 
-
-      @if (error()) {
-        <div class="alert alert-danger py-2 text-small" role="alert">{{ error() }}</div>
-      }
-
-      <button type="submit" class="btn btn-primary-custom w-100" [disabled]="loading()">
-        @if (loading()) {
-          <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-          Ingresando…
-        } @else {
-          <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar sesión
+        @if (error()) {
+          <div class="alert alert-danger py-2 mt-3 mb-0">{{ error() }}</div>
         }
-      </button>
-    </form>
 
-    <p class="text-center text-xs text-muted-custom mt-4 mb-0">
-      Demo: <strong>demo@carlito.app</strong> / <strong>demo</strong>
-    </p>
-  </div>
+        <button type="submit" class="btn auth-btn-primary mt-4" [disabled]="loading()">
+          {{ loading() ? 'Ingresando…' : 'Iniciar sesión' }}
+        </button>
+      </form>
+
+      <div class="auth-signup mt-4">
+        ¿No tienes una cuenta?
+        <a routerLink="/registro"><strong>Regístrate</strong></a>
+      </div>
+    </div>
+  </section>
 </div>

@@ -1,14 +1,15 @@
 import { Component, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { form, FormField, required, email, minLength } from '@angular/forms/signals';
-import { Logo } from '../../../../shared/components/logo/logo';
+import { finalize } from 'rxjs';
 import { AuthService } from '../../services/auth.service';
 import { LoginRequest } from '../../interfaces/login-request.interface';
+import { getApiErrorMessage } from '../../../../core/api/api-error';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [FormField, Logo],
+  imports: [FormField, RouterLink],
   templateUrl: './login.html',
   styleUrl: './login.css',
 })
@@ -22,8 +23,8 @@ export class Login {
 
   /** 2. Modelo (signal) */
   private readonly loginModelo = signal<LoginRequest>({
-    email: 'demo@carlito.app',
-    password: 'demo',
+    email: '',
+    password: '',
   });
 
   /** 3. Formulario Signal */
@@ -31,10 +32,10 @@ export class Login {
     required(esquema.email, { message: 'El correo es obligatorio' });
     email(esquema.email, { message: 'Ingresa un correo válido' });
     required(esquema.password, { message: 'La contraseña es obligatoria' });
-    minLength(esquema.password, 4, { message: 'Mínimo 4 caracteres' });
+    minLength(esquema.password, 8, { message: 'Mínimo 8 caracteres' });
   });
 
-  async guardar(evento: Event) {
+  guardar(evento: Event) {
     evento.preventDefault();
 
     // Marcar campos como touched si el form es inválido
@@ -47,17 +48,17 @@ export class Login {
     this.error.set(null);
     this.loading.set(true);
 
-    try {
-      const datos: LoginRequest = {
-        email: this.loginModelo().email,
-        password: this.loginModelo().password,
-      };
-      await this.auth.login(datos);
-      await this.router.navigateByUrl('/inicio');
-    } catch (e) {
-      this.error.set(e instanceof Error ? e.message : 'No se pudo iniciar sesión');
-    } finally {
-      this.loading.set(false);
-    }
+    const datos: LoginRequest = {
+      email: this.loginModelo().email,
+      password: this.loginModelo().password,
+    };
+
+    this.auth
+      .login(datos)
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: () => this.router.navigateByUrl('/inicio'),
+        error: (error) => this.error.set(getApiErrorMessage(error, 'No se pudo iniciar sesión')),
+      });
   }
 }

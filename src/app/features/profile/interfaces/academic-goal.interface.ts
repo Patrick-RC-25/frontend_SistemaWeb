@@ -5,4 +5,8 @@ export interface AcademicGoal {
   targetValue: number;
   progressPercentage: number;
   description?: string;
+  courseId: number | null;
+  startDate: string;
+  limitDate: string | null;
+  status: 'pendiente' | 'en_progreso' | 'completado' | 'cancelado';
 }

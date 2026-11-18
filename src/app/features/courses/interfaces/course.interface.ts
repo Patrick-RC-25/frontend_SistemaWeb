@@ -4,7 +4,8 @@ export interface Course {
   code: string;
   shortName: string;
   credits: number;
-  average: number;
-  previousAverage: number;
+  average: number | null;
+  targetAverage: number | null;
   teacher?: string;
+  color?: string;
 }

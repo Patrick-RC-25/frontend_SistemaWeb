@@ -1,11 +1,9 @@
-<div class="logo d-flex align-items-center gap-2" [class.logo-light]="light">
-  <div class="logo-mark d-flex align-items-center justify-content-center">
-    <i class="bi bi-mortarboard-fill"></i>
-  </div>
+<a class="logo" [class.logo-light]="light" [class.logo-compact]="compact" routerLink="/inicio">
+  <span class="logo-mark" aria-hidden="true">RS</span>
   @if (!compact) {
-    <div class="logo-text">
-      <span class="logo-name">CarlitoApp</span>
-      <span class="logo-tag">Huancayo</span>
-    </div>
+    <span class="logo-text">
+      <span class="logo-name">RandomStudy</span>
+      <span class="logo-tag">Organización académica</span>
+    </span>
   }
-</div>
+</a>

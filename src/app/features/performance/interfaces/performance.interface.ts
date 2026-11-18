@@ -1,21 +1,15 @@
-export interface WeeklyPerformance {
-  week: string;
-  average: number;
-  goal: number;
-}
-
 export interface CoursePerformance {
   courseId: number;
   courseName: string;
-  average: number;
-  change: number;
+  average: number | null;
+  targetAverage: number | null;
+  difference: number | null;
   progressPercentage: number;
 }
 
 export interface AcademicPerformance {
-  generalAverage: number;
-  targetAverage: number;
-  initialAverage: number;
-  weeklyHistory: WeeklyPerformance[];
+  generalAverage: number | null;
+  coursesBelowTarget: string[];
+  recommendations: string[];
   courses: CoursePerformance[];
 }

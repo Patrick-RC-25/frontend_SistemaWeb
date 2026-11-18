@@ -1,40 +1,100 @@
-<app-page-header
-  title="Alertas"
-  subtitle="Avisos sobre evaluaciones, tareas y aspectos que requieren tu atención."
-/>
-
-<div class="filter-bar d-flex flex-wrap gap-2 mb-4">
-  @for (f of [
-    { id: 'all', label: 'Todas' },
-    { id: 'pending', label: 'Pendientes' },
-    { id: 'urgent', label: 'Urgentes' },
-    { id: 'important', label: 'Importantes' },
-    { id: 'suggestion', label: 'Sugerencias' },
-    { id: 'completed', label: 'Atendidas' }
-  ]; track f.id) {
-    <button
-      type="button"
-      class="btn btn-sm filter-btn"
-      [class.active]="filter() === f.id"
-      (click)="setFilter($any(f.id))"
-    >
-      {{ f.label }}
-    </button>
-  }
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <app-page-header
+    title="Alertas"
+    subtitle="Avisos de vencimientos, rendimiento y recordatorios."
+  />
+  <button type="button" class="btn btn-primary" (click)="openForm()">
+    <i class="bi bi-plus-lg me-1"></i> Nueva alerta
+  </button>
 </div>
 
-<div class="d-flex flex-column gap-3">
-  @for (alert of listaAlertas(); track alert.id) {
-    <app-alert-card
-      [alert]="alert"
-      (markDone)="onMarkDone($event)"
-      (action)="onAction($event)"
-    />
-  } @empty {
+@if (error()) {
+  <div class="alert alert-danger" role="alert">{{ error() }}</div>
+}
+
+@if (showForm()) {
+  <div class="card-custom p-3 p-md-4 mb-4">
+    <h2 class="h6 mb-3">Nueva alerta</h2>
+    <form (submit)="guardar($event)" class="row g-3" novalidate>
+      <div class="col-md-6">
+        <label class="form-label" for="titulo">Título</label>
+        <input id="titulo" class="form-control" [formField]="alertaForm.titulo" />
+        @if (alertaForm.titulo().touched() && alertaForm.titulo().invalid()) {
+          @for (e of alertaForm.titulo().errors(); track $index) {
+            <div class="text-danger small">{{ e.message }}</div>
+          }
+        }
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="idTipo">Tipo</label>
+        <select id="idTipo" class="form-select" [formField]="alertaForm.idTipo">
+          @for (t of tiposAlerta; track t.id) {
+            <option [value]="t.id">{{ t.nombre }}</option>
+          }
+        </select>
+      </div>
+      <div class="col-12">
+        <label class="form-label" for="mensaje">Mensaje</label>
+        <textarea id="mensaje" class="form-control" rows="2" [formField]="alertaForm.mensaje"></textarea>
+        @if (alertaForm.mensaje().touched() && alertaForm.mensaje().invalid()) {
+          @for (e of alertaForm.mensaje().errors(); track $index) {
+            <div class="text-danger small">{{ e.message }}</div>
+          }
+        }
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="idCurso">Curso (opcional)</label>
+        <select id="idCurso" class="form-select" [formField]="alertaForm.idCurso">
+          <option value="">Sin curso</option>
+          @for (c of cursos(); track c.id) {
+            <option [value]="c.id">{{ c.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="fechaProgramada">Fecha programada (opcional)</label>
+        <input
+          id="fechaProgramada"
+          type="datetime-local"
+          class="form-control"
+          [formField]="alertaForm.fechaProgramada"
+        />
+      </div>
+      <div class="col-12 d-flex gap-2">
+        <button class="btn btn-primary" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Guardando…' : 'Guardar alerta' }}
+        </button>
+        <button class="btn btn-outline-secondary" type="button" (click)="showForm.set(false)">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  </div>
+}
+
+@if (loading()) {
+  <app-loading-spinner message="Cargando alertas..." />
+} @else {
+  <div class="d-flex flex-wrap gap-2 mb-3">
+    <button type="button" class="btn btn-sm" [class.btn-primary]="filter() === 'all'" [class.btn-outline-secondary]="filter() !== 'all'" (click)="setFilter('all')">Todas</button>
+    <button type="button" class="btn btn-sm" [class.btn-primary]="filter() === 'unread'" [class.btn-outline-secondary]="filter() !== 'unread'" (click)="setFilter('unread')">No leídas</button>
+    <button type="button" class="btn btn-sm" [class.btn-primary]="filter() === 'read'" [class.btn-outline-secondary]="filter() !== 'read'" (click)="setFilter('read')">Leídas</button>
+  </div>
+
+  @if (listaAlertas().length === 0) {
     <app-empty-state
-      icon="bi-bell-slash"
-      title="Sin alertas en este filtro"
-      message="Cambia el filtro o vuelve más tarde cuando haya nuevas notificaciones."
+      title="Sin alertas"
+      message="Todavía no hay alertas registradas. Puedes crear una manualmente; la generación automática está pendiente."
     />
+  } @else {
+    <div class="d-flex flex-column gap-2">
+      @for (alerta of listaAlertas(); track alerta.id) {
+        <app-alert-card
+          [alert]="alerta"
+          (markRead)="onMarkRead($event)"
+          (action)="onAction($event)"
+        />
+      }
+    </div>
   }
-</div>
+}

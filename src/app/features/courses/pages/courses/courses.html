@@ -1,91 +1,240 @@
-<app-page-header
-  title="Cursos"
-  subtitle="Consulta tus cursos, promedios y calificaciones del semestre."
-/>
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <app-page-header
+    title="Cursos"
+    subtitle="Consulta tus cursos, promedios y calificaciones del semestre."
+  />
+  <div class="d-flex flex-wrap align-items-center gap-2">
+    @if (activePeriod(); as period) {
+      <span class="badge text-bg-light">{{ period.nombre }}</span>
+    } @else {
+      <span class="badge text-bg-warning">Sin periodo activo</span>
+    }
+    <button type="button" class="btn btn-outline-primary btn-sm" (click)="abrirPeriodo()">
+      <i class="bi bi-calendar-plus me-1"></i> Nuevo periodo
+    </button>
+    <button type="button" class="btn btn-primary btn-sm" (click)="openForm()" [disabled]="!activePeriod()">
+      <i class="bi bi-plus-lg me-1"></i> Nuevo curso
+    </button>
+  </div>
+</div>
 
-<div class="row g-3">
-  <div class="col-lg-5">
-    <div class="d-flex flex-column gap-2">
-      @for (course of courses(); track course.id) {
-        <button
-          type="button"
-          class="course-item card-custom text-start p-3"
-          [class.active]="selectedId() === course.id"
-          (click)="select(course)"
-        >
-          <div class="d-flex align-items-center gap-3">
-            <div class="course-badge">{{ course.shortName }}</div>
-            <div class="flex-grow-1 min-w-0">
-              <div class="fw-semibold truncate">{{ course.name }}</div>
-              <div class="text-xs text-muted-custom">{{ course.code }} · {{ course.credits }} créditos</div>
-            </div>
-            <div class="text-end">
-              <div class="fw-bold">{{ course.average | number:'1.1-1' }}</div>
-              <div class="text-xs" [class.text-success]="changeTone(course)==='success'" [class.text-danger]="changeTone(course)==='danger'">
-                {{ changeLabel(course) }}
+@if (error()) {
+  <div class="alert alert-danger" role="alert">{{ error() }}</div>
+}
+
+@if (showPeriodForm()) {
+  <div class="card-custom p-3 p-md-4 mb-3">
+    <h2 class="h6 mb-3">Crear periodo académico</h2>
+    <p class="text-small text-muted-custom">Al crear un periodo activo, el periodo que estaba activo se marcará como finalizado.</p>
+    <form class="row g-2" (submit)="guardarPeriodo($event)" novalidate>
+      <div class="col-md-4">
+        <label class="form-label" for="period-name">Nombre</label>
+        <input id="period-name" class="form-control" [formField]="periodoForm.nombre" placeholder="Ej. 2026-II" />
+        @if (periodoForm.nombre().touched() && periodoForm.nombre().invalid()) {
+          @for (e of periodoForm.nombre().errors(); track $index) { <div class="text-danger small">{{ e.message }}</div> }
+        }
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="period-start">Fecha de inicio</label>
+        <input id="period-start" type="date" class="form-control" [formField]="periodoForm.fechaInicio" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="period-end">Fecha de fin</label>
+        <input id="period-end" type="date" class="form-control" [formField]="periodoForm.fechaFin" />
+      </div>
+      <div class="col-md-2 d-flex align-items-end gap-2">
+        <button type="submit" class="btn btn-primary btn-sm" [disabled]="savingPeriod()">{{ savingPeriod() ? 'Guardando…' : 'Crear' }}</button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" (click)="showPeriodForm.set(false)">×</button>
+      </div>
+    </form>
+  </div>
+}
+
+@if (showForm()) {
+  <div class="card-custom p-3 mb-3">
+    <h2 class="h6">{{ editingCourseId() === null ? 'Nuevo curso' : 'Editar curso' }}</h2>
+    <form (submit)="guardarCurso($event)" class="row g-2" novalidate>
+      <div class="col-md-6">
+        <label class="form-label" for="nombre">Nombre</label>
+        <input id="nombre" class="form-control" [formField]="cursoForm.nombre" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="codigo">Código</label>
+        <input id="codigo" class="form-control" [formField]="cursoForm.codigo" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="creditos">Créditos</label>
+        <input id="creditos" type="number" class="form-control" [formField]="cursoForm.creditos" />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label" for="docente">Docente</label>
+        <input id="docente" class="form-control" [formField]="cursoForm.docente" />
+      </div>
+      <div class="col-md-3">
+        <label class="form-label" for="notaObjetivo">Nota objetivo</label>
+        <input id="notaObjetivo" type="number" class="form-control" [formField]="cursoForm.notaObjetivo" />
+      </div>
+      <div class="col-12 d-flex gap-2">
+        <button class="btn btn-primary" type="submit" [disabled]="saving()">
+          {{ saving() ? 'Guardando…' : (editingCourseId() === null ? 'Guardar curso' : 'Guardar cambios') }}
+        </button>
+        <button class="btn btn-outline-secondary" type="button" (click)="showForm.set(false)">Cancelar</button>
+      </div>
+    </form>
+  </div>
+}
+
+@if (loading()) {
+  <app-loading-spinner message="Cargando cursos..." />
+} @else if (loadError()) {
+  <div class="alert alert-danger" role="alert">{{ loadError() }}</div>
+} @else {
+  <div class="row g-3">
+    <div class="col-lg-5">
+      <div class="d-flex flex-column gap-2">
+        @for (course of courses(); track course.id) {
+          <button
+            type="button"
+            class="course-item card-custom text-start p-3"
+            [class.active]="selectedId() === course.id"
+            (click)="select(course)"
+          >
+            <div class="d-flex align-items-center gap-3">
+              <div class="course-badge">{{ course.shortName }}</div>
+              <div class="flex-grow-1 min-w-0">
+                <div class="fw-semibold truncate">{{ course.name }}</div>
+                <div class="text-xs text-muted-custom">
+                  {{ course.code || 'Sin código' }} · {{ course.credits ? course.credits + ' créditos' : 'Créditos no especificados' }}
+                </div>
+              </div>
+              <div class="text-end">
+                <div class="fw-bold">{{ course.average === null ? '—' : (course.average | number: '1.1-1') }}</div>
+                <div class="text-xs text-muted-custom">{{ course.targetAverage === null ? 'Sin meta' : 'Meta ' + course.targetAverage }}</div>
               </div>
             </div>
+          </button>
+        } @empty {
+          <app-empty-state title="Sin cursos" message="Aún no hay cursos registrados." />
+        }
+      </div>
+    </div>
+
+    <div class="col-lg-7">
+      @if (selected(); as c) {
+        <div class="card-custom p-3 p-md-4">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div>
+              <h2 class="h5 mb-1">{{ c.name }}</h2>
+              <p class="text-small text-muted-custom mb-0">
+                {{ c.code || 'Sin código' }} · Docente: {{ c.teacher || '—' }}
+              </p>
+              <div class="d-flex gap-2 mt-2">
+                <button type="button" class="btn btn-sm btn-outline-primary" (click)="editCourse(c)">Editar curso</button>
+                <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteCourse(c)">Desactivar</button>
+              </div>
+            </div>
+            <div class="text-end">
+              <div class="display-6 fw-bold" style="font-size: 1.75rem">
+                {{ c.average === null ? '—' : (c.average | number: '1.1-1') }}
+              </div>
+              <div class="text-xs text-muted-custom">Promedio actual</div>
+              @if (c.targetAverage !== null) {
+                <div class="text-xs text-muted-custom">Meta: {{ c.targetAverage | number: '1.1-1' }}</div>
+              }
+            </div>
           </div>
-        </button>
-      } @empty {
-        <app-empty-state title="Sin cursos" message="Aún no hay cursos registrados." />
+
+          @if (c.average !== null) {
+            <app-progress-bar [value]="c.average" [max]="20" tone="primary" />
+          }
+
+          <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
+            <h3 class="h6 mb-0">Calificaciones</h3>
+            <button type="button" class="btn btn-sm btn-primary" (click)="openGradeForm()">
+              <i class="bi bi-plus-lg"></i> Nueva nota
+            </button>
+          </div>
+
+          @if (showGradeForm()) {
+            <form (submit)="guardarNota($event)" class="row g-2 mb-3 border rounded p-2 bg-light">
+              <div class="col-12 fw-semibold small">{{ editingGradeId() === null ? 'Nueva evaluación' : 'Editar evaluación' }}</div>
+              <div class="col-md-4">
+                <label class="form-label small" for="tipoEvaluacion">Tipo</label>
+                <select id="tipoEvaluacion" class="form-select form-select-sm" [formField]="notaForm.idTipoEvaluacion">
+                  @for (tipo of tiposEvaluacion; track tipo.id) { <option [value]="tipo.id">{{ tipo.nombre }}</option> }
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small" for="nombreEvaluacion">Nombre</label>
+                <input id="nombreEvaluacion" class="form-control form-control-sm" [formField]="notaForm.nombre" placeholder="Ej. Parcial 1" />
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small" for="ponderacion">Ponderación %</label>
+                <input id="ponderacion" type="number" class="form-control form-control-sm" [formField]="notaForm.ponderacion" />
+              </div>
+              <div class="col-md-2">
+                <label class="form-label small" for="notaMaxima">Nota máxima</label>
+                <input id="notaMaxima" type="number" class="form-control form-control-sm" value="20" readonly aria-readonly="true" />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small" for="notaObtenida">Nota obtenida (opcional)</label>
+                <input id="notaObtenida" type="number" class="form-control form-control-sm" [formField]="notaForm.notaObtenida" step="0.1" />
+              </div>
+              <div class="col-md-4">
+                <label class="form-label small" for="fechaEvaluacion">Fecha (opcional)</label>
+                <input id="fechaEvaluacion" type="date" class="form-control form-control-sm" [formField]="notaForm.fechaEvaluacion" />
+              </div>
+              <div class="col-md-4 d-flex align-items-end gap-1">
+                <button class="btn btn-sm btn-primary" type="submit" [disabled]="savingGrade()">Guardar</button>
+                <button class="btn btn-sm btn-outline-secondary" type="button" (click)="showGradeForm.set(false)">Cancelar</button>
+              </div>
+            </form>
+          }
+
+          @if (selectedGrades().length) {
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead>
+                  <tr class="text-muted-custom text-xs">
+                    <th>Evaluación</th>
+                    <th>Tipo</th>
+                    <th>Nota</th>
+                    <th>Peso</th>
+                    <th>Fecha</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (g of selectedGrades(); track g.id) {
+                    <tr>
+                      <td class="fw-medium">{{ g.name }}</td>
+                      <td class="text-small">{{ g.typeLabel }}</td>
+                      <td class="fw-semibold">{{ g.score === null ? 'Pendiente' : (g.score | number: '1.1-1') }} / {{ g.maxScore }}</td>
+                      <td>{{ g.weight }}%</td>
+                      <td class="text-small text-muted-custom">{{ g.date || '—' }}</td>
+                      <td>
+                        <div class="d-flex gap-1">
+                          <button type="button" class="btn btn-sm btn-outline-primary" aria-label="Editar evaluación" (click)="editGrade(g)"><i class="bi bi-pencil"></i></button>
+                          <button type="button" class="btn btn-sm btn-outline-danger" aria-label="Eliminar evaluación" (click)="deleteGrade(g)"><i class="bi bi-trash"></i></button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <p class="text-small text-muted-custom mb-0">
+              Aún no hay calificaciones. Usa «Nueva nota» para registrar la primera.
+            </p>
+          }
+        </div>
+      } @else {
+        <div class="card-custom p-5 text-center text-muted-custom">
+          <i class="bi bi-book display-6 d-block mb-2 opacity-50"></i>
+          Selecciona un curso para ver el detalle y las calificaciones.
+        </div>
       }
     </div>
   </div>
-
-  <div class="col-lg-7">
-    @if (selected(); as c) {
-      <div class="card-custom p-3 p-md-4">
-        <div class="d-flex justify-content-between align-items-start mb-3">
-          <div>
-            <h2 class="h5 mb-1">{{ c.name }}</h2>
-            <p class="text-small text-muted-custom mb-0">
-              {{ c.code }} · Docente: {{ c.teacher || '—' }}
-            </p>
-          </div>
-          <div class="text-end">
-            <div class="display-6 fw-bold" style="font-size: 1.75rem">{{ c.average | number:'1.1-1' }}</div>
-            <div class="text-xs text-muted-custom">Promedio actual</div>
-          </div>
-        </div>
-
-        <app-progress-bar [value]="c.average" [max]="20" tone="primary" />
-
-        <h3 class="h6 mt-4 mb-3">Calificaciones</h3>
-        @if (selectedGrades().length) {
-          <div class="table-responsive">
-            <table class="table table-sm align-middle mb-0">
-              <thead>
-                <tr class="text-muted-custom text-xs">
-                  <th>Evaluación</th>
-                  <th>Tipo</th>
-                  <th>Nota</th>
-                  <th>Peso</th>
-                  <th>Fecha</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (g of selectedGrades(); track g.id) {
-                  <tr>
-                    <td class="fw-medium">{{ g.name }}</td>
-                    <td class="text-capitalize text-small">{{ g.type }}</td>
-                    <td class="fw-semibold">{{ g.score }}</td>
-                    <td>{{ g.weight }}%</td>
-                    <td class="text-small text-muted-custom">{{ g.date }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        } @else {
-          <p class="text-small text-muted-custom mb-0">Aún no hay calificaciones registradas para este curso.</p>
-        }
-      </div>
-    } @else {
-      <div class="card-custom p-5 text-center text-muted-custom">
-        <i class="bi bi-book display-6 d-block mb-2 opacity-50"></i>
-        Selecciona un curso para ver el detalle y las calificaciones.
-      </div>
-    }
-  </div>
-</div>
+}

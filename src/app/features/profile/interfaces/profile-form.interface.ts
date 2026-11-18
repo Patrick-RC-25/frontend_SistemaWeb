@@ -1,7 +1,7 @@
 export interface ProfileForm {
   firstName: string;
   lastName: string;
-  email: string;
+  university: string;
   career: string;
-  semester: number;
+  cycle: string;
 }

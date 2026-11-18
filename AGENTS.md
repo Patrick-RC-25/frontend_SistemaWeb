@@ -1,175 +1,77 @@
-# AGENTS.md — CarlitoApp Frontend
+# AGENTS.md — RandomStudy frontend
 
-## 1. Project purpose
+## Alcance y objetivo
 
-CarlitoApp is a free web platform intended to help university students in Huancayo organize their academic activities, monitor their performance, prioritize pending work, and reduce the risk of academic overload.
+Frontend de RandomStudy, una plataforma de organización y seguimiento académico. Debe ayudar a organizar cursos, evaluaciones, tareas, horarios, sesiones de estudio y objetivos, además de mostrar el rendimiento sin inventar datos que la API no proporciona.
 
-The frontend should provide a clear and usable experience for:
-- Reviewing an academic overview and priorities.
-- Consulting courses and grades.
-- Monitoring academic performance and goals.
-- Organizing study sessions.
-- Reviewing alerts.
-- Managing profile information and notification preferences.
+## Stack y convenciones
 
-The application is a planning and organization aid. Do not describe it as a replacement for academic advising or mental-health support.
+- Angular 22 con componentes standalone y rutas lazy.
+- Bootstrap 5 + Bootstrap Icons + CSS propio basado en variables globales.
+- Formularios exclusivamente con Angular Signal Forms (`form`, `FormField`, validadores de `@angular/forms/signals`).
+- Peticiones HTTP con `HttpClient` y Observables de RxJS.
+- Interfaces de API en español/snake_case; modelos de presentación en camelCase y mappers explícitos.
+- Backend FastAPI en `http://localhost:8000`; base de datos SQL Server `RandomStudyDB`.
+- No usar Reactive Forms, Template-driven Forms, `ngModel`, `FormGroup`, `FormControl` ni `FormBuilder`.
+- No agregar datos simulados para rellenar métricas. Si un dato no existe en la API, mostrarlo como no disponible o dejar explícita la limitación.
 
-## 2. Current development scope
+## Módulos y rutas
 
-**Current phase: frontend only.**
+- `/login`, `/registro`: autenticación JWT.
+- `/inicio`: resumen real del dashboard y alertas recientes.
+- `/cursos`: cursos, metas de nota y evaluaciones.
+- `/tareas`: tareas, vencimientos, prioridad y estados.
+- `/planificacion`: horarios de clase y sesiones de estudio.
+- `/rendimiento`: promedio actual por curso frente a la nota objetivo.
+- `/alertas`: alertas no leídas/leídas.
+- `/perfil`: perfil y objetivos académicos.
 
-The immediate goal is to finish the visual interface and client-side interactions using local mock data.
+## API real
 
-Do not implement any of the following until the user explicitly starts the backend/integration phase:
-- FastAPI application or Python backend.
-- REST endpoints or HTTP requests.
-- Pydantic schemas, repositories, or backend services.
-- Database models, migrations, or database connections.
-- Real authentication, authorization, or token management.
+- Auth: `/auth/register`, `/auth/login`, `/auth/me`, `/auth/logout`.
+- Perfil: `GET/PUT /perfil`.
+- Periodos: `GET/POST /periodos`.
+- Cursos: `GET/POST /cursos`, `GET/PUT/DELETE /cursos/{id}`.
+- Evaluaciones: `GET /evaluaciones/curso/{id}`, `POST /evaluaciones`, `PUT/DELETE /evaluaciones/{id}`.
+- Horarios: `GET/POST /horarios`, `GET /horarios/curso/{id}`, `PUT/DELETE /horarios/{id}`.
+- Tareas: `GET/POST /tareas`, `PUT/DELETE /tareas/{id}`.
+- Sesiones: `/sesiones` y acciones `iniciar`, `finalizar`, `cancelar`.
+- Objetivos: `GET/POST /objetivos`, `PUT/DELETE /objetivos/{id}`.
+- Alertas: `GET/POST /alertas`, `PATCH /alertas/{id}/leida`, `DELETE /alertas/{id}`.
+- Dashboard: `GET /dashboard/resumen`.
+- Rendimiento: `GET /rendimiento`.
 
-OpenCode will be used later to help connect the Angular frontend with the backend and assist with integration. Do not start that integration on your own.
+No usar rutas heredadas como `/estudiante`, `/notas` o `/notificaciones`: no existen en el backend actual.
 
-## 3. Technology stack
+## Datos y reglas importantes
 
-- Angular 22, standalone components, and TypeScript.
-- Angular Router for navigation.
-- Angular Signals for reactive client-side state.
-- Angular Signal Forms (`@angular/forms/signals`) for forms and validation.
-- Bootstrap 5 for layout and common UI elements.
-- Bootstrap Icons for icons.
-- Custom CSS for the CarlitoApp visual identity and components.
-- Chart.js for academic performance charts.
-- SweetAlert2 for toast messages and confirmations.
-- Angular SSR/hydration is enabled; preserve the existing SSR setup.
+- `Alerta.leida` significa leída, no atendida ni completada. En el frontend usar `read`/`unread`.
+- `nota_obtenida: null` significa evaluación todavía sin calificar; no convertirla a cero.
+- `promedio_actual: null` significa que todavía no hay calificaciones válidas.
+- La API de rendimiento no devuelve historial semanal. No crear gráficos de evolución temporal con valores ficticios; comparar el promedio actual con la nota objetivo.
+- `PerfilUsuario.ciclo` es texto (`NVARCHAR(30)`), no necesariamente un número de semestre.
+- El backend no persiste preferencias de notificación; no simular un guardado exitoso.
+- Cada petición protegida debe enviar `Authorization: Bearer <token>` mediante el interceptor.
+- No guardar ni mostrar secretos. El token de acceso se guarda en `localStorage` mediante `AuthService`; mantener esta decisión consciente de sus implicaciones de seguridad.
 
-Bootstrap and Bootstrap Icons are imported from `src/styles.css`. Do not add Tailwind or a second icon library unless the user requests a deliberate stack change.
+## SSR y navegador
 
-## 4. Application architecture
+El `angular.json` actual tiene `ssr: false`. Aun así, mantener el acceso a `localStorage`, `window`, `document`, `confirm` y APIs del navegador limitado a eventos o código protegido por `isPlatformBrowser` cuando sea necesario.
 
-The frontend is organized by feature:
+## Comandos
 
-- `src/app/core/`: application-wide services and guards. `MockDataService` is the current local data source.
-- `src/app/shared/`: reusable UI components and shared interfaces.
-- `src/app/layout/`: authenticated application shell and global navigation.
-- `src/app/features/`: pages, interfaces, and services grouped by feature.
-- `src/styles/`: global variables, reusable component styles, and utilities.
-
-Each feature should keep its own:
-- `pages/`: route-level screens.
-- `components/`: feature-specific reusable components, when needed.
-- `interfaces/`: TypeScript data contracts.
-- `services/`: feature logic and access to the mock data source.
-
-Do not put business/data logic directly in page templates. Pages should coordinate presentation and user interaction; feature services should provide data and operations.
-
-### Current routes
-
-- `/login`
-- `/inicio`
-- `/alertas`
-- `/cursos`
-- `/rendimiento`
-- `/planificacion`
-- `/perfil`
-
-The authenticated routes are grouped under `MainLayout`. Route guards currently use simulated in-memory authentication.
-
-## 5. Mock data and future integration
-
-`src/app/core/services/mock-data.service.ts` is the single local source of mock student, course, grade, alert, study-session, goal, and notification data.
-
-Feature services consume that source:
-- `features/auth/services/auth.service.ts`
-- `features/alerts/services/alerts.service.ts`
-- `features/courses/services/courses.service.ts`
-- `features/dashboard/services/dashboard.service.ts`
-- `features/performance/services/performance.service.ts`
-- `features/planner/services/planner.service.ts`
-- `features/profile/services/profile.service.ts`
-
-Keep mock data realistic and internally consistent. Reuse the TypeScript interfaces in each feature rather than duplicating object shapes.
-
-When backend integration is authorized later, replace the mock data access inside services with HTTP calls. Keep components focused on the UI so they do not need to be rewritten.
-
-The login is only a demonstration flow. It is not secure authentication and must not be presented as production-ready. Current demo credentials:
-- Email: `demo@carlito.app`
-- Password: `demo`
-
-The demo session is in-memory and is not persisted, which avoids browser-storage access during SSR/hydration. Real session persistence belongs to the future authentication integration phase.
-
-## 6. Coding conventions
-
-- Use standalone Angular components.
-- Use lazy `loadComponent` routes where appropriate.
-- Use Angular Signals (`signal`, `computed`, `effect`) for local reactive state.
-- Use Signal Forms for all new forms.
-- Do not use `FormsModule`, `ReactiveFormsModule`, `ngModel`, `FormGroup`, `FormControl`, or `FormBuilder`.
-- Keep templates declarative; put calculations and event handling in the component or feature service.
-- Use typed interfaces for component inputs, outputs, and mock data.
-- Prefer clear names and small methods.
-- Keep shared components generic; feature-specific behavior belongs in the feature.
-- Maintain responsive behavior for desktop, tablet, and mobile.
-- Use accessible labels, button types, and meaningful status text.
-- Avoid introducing dependencies when existing Angular, Bootstrap, Chart.js, or SweetAlert2 functionality is sufficient.
-
-## 7. SSR and browser-only APIs
-
-SSR and hydration are enabled. Do not access `window`, `document`, `localStorage`, `sessionStorage`, or browser-only APIs during server-side initialization.
-
-When a browser-only API is genuinely required, guard it with Angular's platform utilities such as `isPlatformBrowser`, and ensure the server and initial client render remain compatible.
-
-Chart.js rendering must occur only in the browser after the view is available. Keep chart instances destroyed when components are destroyed.
-
-## 8. Visual implementation workflow
-
-When implementing or revising a screen:
-1. Inspect the existing page and shared components first.
-2. Preserve the current visual language and responsive layout.
-3. Reuse existing shared components such as `PageHeader`, `StatCard`, `ProgressBar`, `AlertCard`, and `EmptyState`.
-4. Keep all page data in typed mock objects/services.
-5. Implement interactions with Signals and feature services.
-6. Check empty, loading, validation, and success states where relevant.
-7. Verify navigation and mobile layout.
-8. Do not add backend assumptions or HTTP dependencies.
-
-## 9. Current modules
-
-- **Login:** demo sign-in and client-side validation.
-- **Inicio:** academic summary, recommendation, goal progress, priority alerts.
-- **Alertas:** alert list, filters, and mark-as-attended interaction.
-- **Cursos:** course list, selected course details, grades, and averages.
-- **Rendimiento:** academic summary, course performance, and weekly Chart.js graph.
-- **Planificación:** create, filter, complete, and cancel study sessions.
-- **Perfil:** edit profile data, academic goals, notification preferences, and sign out.
-
-Some data and interactions are still demonstrative. Do not assume that a displayed sample is a verified real university record.
-
-## 10. Running the frontend
-
-From the project root:
-
-```bash
+```powershell
 npm install
 npm start
+npm run build
+npm test -- --watch=false
 ```
 
-The Angular development server normally runs at `http://localhost:4200`.
+Angular 22 requiere una versión compatible de Node; con los paquetes fijados en este proyecto, usa Node `22.22.3` o superior dentro de la rama 22.
 
-Useful scripts:
-- `npm start`: run the development server.
-- `npm run build`: production build.
-- `npm run watch`: development build in watch mode.
-- `npm test`: run tests.
+## Antes de terminar cambios
 
-The repository archive may not include `node_modules` or `package-lock.json`; run `npm install` to install dependencies and generate the lockfile if needed.
-
-## 11. Instructions for future AI coding agents
-
-Before changing code:
-- Read this file and inspect the relevant feature files.
-- Confirm the task is within the frontend-only phase.
-- Do not create backend files or connect to an API unless explicitly instructed.
-- Do not replace the existing architecture or visual design wholesale.
-- Prefer small, coherent changes and explain which files were changed.
-- After changes, check imports, types, templates, responsive behavior, and build/test results when dependencies are available.
-- Never claim that a build or test passed unless it was actually executed successfully.
+1. Revisar que DTOs y rutas coincidan con `backend/src/backend/schemas` y `backend/src/backend/apis`.
+2. Mantener los mappers y evitar DTOs directamente en templates.
+3. Probar `npm run build` y `npm test -- --watch=false`.
+4. No afirmar que las pruebas pasan si no se han ejecutado.

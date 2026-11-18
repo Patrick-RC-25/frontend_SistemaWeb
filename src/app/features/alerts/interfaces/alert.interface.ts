@@ -1,15 +1,13 @@
-export type AlertKind = 'evaluation' | 'task' | 'review';
-
-export type AlertPriority = 'urgent' | 'important' | 'suggestion';
+export type AlertKind = 'reminder' | 'task' | 'review' | 'system';
 
 export interface AcademicAlert {
   id: number;
   kind: AlertKind;
-  priority: AlertPriority;
+  kindLabel: string;
   title: string;
   courseName: string;
   date: string;
   detail: string;
   actionLabel: string;
-  completed: boolean;
+  read: boolean;
 }

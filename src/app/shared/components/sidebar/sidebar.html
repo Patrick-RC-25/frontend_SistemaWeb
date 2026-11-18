@@ -21,14 +21,20 @@
   </nav>
 
   <div class="sidebar-footer p-3">
-    @if (student(); as s) {
+    @if (email(); as e) {
       <div class="user-card d-flex align-items-center gap-2">
-        <div class="user-avatar">{{ s.initials }}</div>
+        <div class="user-avatar">{{ initials() }}</div>
         <div class="min-w-0 flex-grow-1">
-          <div class="user-name truncate">{{ s.firstName }} {{ s.lastName.split(' ')[0] }}</div>
-          <div class="user-meta">{{ s.semester }}.º semestre</div>
+          <div class="user-name truncate">{{ displayName() }}</div>
+          <div class="user-meta truncate">{{ e }}</div>
         </div>
-        <button type="button" class="btn btn-sm btn-link text-white-50 p-1" (click)="logout()" title="Cerrar sesión" aria-label="Cerrar sesión">
+        <button
+          type="button"
+          class="btn btn-sm btn-link text-white-50 p-1"
+          (click)="logout()"
+          title="Cerrar sesión"
+          aria-label="Cerrar sesión"
+        >
           <i class="bi bi-box-arrow-right"></i>
         </button>
       </div>
