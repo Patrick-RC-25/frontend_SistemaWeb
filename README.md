@@ -1,42 +1,33 @@
-# CarlitoApp — Frontend
+# RandomStudy — Frontend
 
-## Alcance de esta etapa
+Frontend de RandomStudy desarrollado con Angular 22, Bootstrap 5, Signal Forms y `HttpClient` + Observables. Consume el backend FastAPI del directorio `../backend` y la base SQL Server `RandomStudyDB`.
 
-Este repositorio contiene únicamente el frontend de CarlitoApp. El objetivo inmediato es terminar la experiencia visual y las interacciones de la aplicación web antes de iniciar el backend.
+## Requisitos
 
-- Framework: Angular 22 con TypeScript.
-- Estilos: Bootstrap 5, Bootstrap Icons y CSS personalizado.
-- Formularios: Angular Signal Forms.
-- Navegación: Angular Router.
-- Gráficos: Chart.js.
-- Mensajes y confirmaciones: SweetAlert2.
-- Datos: información simulada centralizada en `MockDataService` y consumida mediante servicios de cada módulo.
+Node.js `22.22.3` o superior dentro de la rama 22, npm y el backend configurado.
 
-## Módulos del frontend
+## Desarrollo
 
-- Inicio de sesión (simulado).
-- Inicio / Dashboard.
-- Alertas.
-- Cursos y calificaciones.
-- Rendimiento académico.
-- Planificación de sesiones de estudio.
-- Perfil, objetivos y preferencias.
-
-## Fuera del alcance actual
-
-No implementar todavía FastAPI, endpoints, autenticación real, base de datos, repositorios, modelos Pydantic ni conexión HTTP. La integración con el backend se realizará en una etapa posterior, con OpenCode como herramienta de apoyo.
-
-## Desarrollo local
-
-```bash
+```powershell
 npm install
 npm start
 ```
 
-Si el proyecto no tiene el script `start`, ejecutar:
+Frontend: http://localhost:4200
 
-```bash
-ng serve
-```
+Backend: http://localhost:8000/docs
 
-La aplicación se sirve normalmente en `http://localhost:4200`.
+La URL del backend se configura en `src/environments/environment.development.ts` y `environment.ts`.
+
+## Módulos
+
+- Autenticación y perfil.
+- Periodos académicos y cursos.
+- Evaluaciones y calificaciones.
+- Tareas.
+- Horarios y sesiones de estudio.
+- Objetivos académicos.
+- Alertas.
+- Dashboard y rendimiento.
+
+Los formularios deben usar Angular Signal Forms. Las peticiones deben realizarse mediante `HttpClient` y Observables. No introducir datos ficticios para completar gráficos o indicadores.

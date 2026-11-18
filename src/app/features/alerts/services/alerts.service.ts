@@ -1,30 +1,75 @@
 import { Injectable, inject } from '@angular/core';
-import { MockDataService } from '../../../core/services/mock-data.service';
-import { AcademicAlert, AlertPriority } from '../interfaces/alert.interface';
+import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, Observable, map, tap } from 'rxjs';
+import { environment } from '../../../../environments/environment';
+import { AlertaApi } from '../interfaces/alerta-api.interface';
+import { AcademicAlert, AlertKind } from '../interfaces/alert.interface';
+import { toAlert } from '../mappers/alert.mapper';
 
-export type AlertFilter = 'all' | 'pending' | 'completed' | AlertPriority;
+export type AlertFilter = 'all' | 'unread' | 'read' | AlertKind;
 
 @Injectable({ providedIn: 'root' })
 export class AlertsService {
-  private readonly mock = inject(MockDataService);
+  private readonly http = inject(HttpClient);
+  private readonly apiUrl = `${environment.apiUrl}/alertas`;
+  private readonly alertsSubject = new BehaviorSubject<AcademicAlert[]>([]);
 
-  mostrar(): AcademicAlert[] {
-    return this.mock.alerts()();
+  unreadCount$(): Observable<number> {
+    return this.alertsSubject.pipe(map((items) => items.filter((item) => !item.read).length));
   }
 
-  filtrar(filtro: AlertFilter): AcademicAlert[] {
-    const list = this.mostrar();
-    if (filtro === 'all') return list;
-    if (filtro === 'pending') return list.filter((a) => !a.completed);
-    if (filtro === 'completed') return list.filter((a) => a.completed);
-    return list.filter((a) => a.priority === filtro);
+  mostrar(): Observable<AcademicAlert[]> {
+    return this.http.get<AlertaApi[]>(this.apiUrl).pipe(
+      map((alertas) => alertas.map(toAlert)),
+      tap((alertas) => this.alertsSubject.next(alertas)),
+    );
   }
 
-  contarPendientes(): number {
-    return this.mostrar().filter((alert) => !alert.completed).length;
+  filtrar(filtro: AlertFilter, lista: AcademicAlert[]): AcademicAlert[] {
+    if (filtro === 'all') return lista;
+    if (filtro === 'unread') return lista.filter((alerta) => !alerta.read);
+    if (filtro === 'read') return lista.filter((alerta) => alerta.read);
+    return lista.filter((alerta) => alerta.kind === filtro);
   }
 
-  marcarAtendido(id: number): void {
-    this.mock.markAlertCompleted(id);
+  crearDetallado(datos: {
+    titulo: string;
+    mensaje: string;
+    id_tipo_alerta: number;
+    id_curso: number | null;
+    fecha_programada: string | null;
+  }): Observable<AcademicAlert> {
+    const fecha = datos.fecha_programada
+      ? datos.fecha_programada.length === 16
+        ? `${datos.fecha_programada}:00`
+        : datos.fecha_programada
+      : null;
+
+    return this.http.post<AlertaApi>(this.apiUrl, {
+      id_curso: datos.id_curso,
+      id_tarea: null,
+      id_tipo_alerta: datos.id_tipo_alerta,
+      titulo: datos.titulo,
+      mensaje: datos.mensaje,
+      fecha_programada: fecha,
+    }).pipe(
+      map(toAlert),
+      tap((alerta) => this.alertsSubject.next([alerta, ...this.alertsSubject.value])),
+    );
+  }
+
+  marcarLeida(id: number): Observable<AcademicAlert> {
+    return this.http.patch<AlertaApi>(`${this.apiUrl}/${id}/leida`, {}).pipe(
+      map(toAlert),
+      tap((actualizada) => this.alertsSubject.next(
+        this.alertsSubject.value.map((alerta) => alerta.id === id ? actualizada : alerta),
+      )),
+    );
+  }
+
+  eliminar(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
+      tap(() => this.alertsSubject.next(this.alertsSubject.value.filter((alerta) => alerta.id !== id))),
+    );
   }
 }

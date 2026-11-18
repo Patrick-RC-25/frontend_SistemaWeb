@@ -3,10 +3,10 @@ import { AcademicGoal } from '../../profile/interfaces/academic-goal.interface';
 
 export interface DashboardData {
   studentName: string;
-  currentAverage: number;
-  targetAverage: number;
+  currentAverage: number | null;
+  targetAverage: number | null;
   activeAlerts: number;
-  pendingMattersToday: number;
+  pendingActivities: number;
   mainRecommendation: string;
   recommendationDetail: string;
   academicGoal: AcademicGoal;

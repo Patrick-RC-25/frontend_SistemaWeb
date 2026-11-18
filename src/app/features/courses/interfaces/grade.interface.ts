@@ -2,8 +2,11 @@ export interface Grade {
   id: number;
   courseId: number;
   name: string;
-  score: number;
+  score: number | null;
+  maxScore: number;
   weight: number;
   date: string;
-  type: 'exam' | 'assignment' | 'quiz' | 'project';
+  type: string;
+  typeId: number;
+  typeLabel: string;
 }

@@ -1,0 +1,94 @@
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+  <app-page-header title="Tareas" subtitle="Centraliza tus entregas y actividades académicas." />
+  <button type="button" class="btn btn-primary-custom btn-sm" (click)="openForm()">
+    <i class="bi bi-plus-lg me-1"></i> Nueva tarea
+  </button>
+</div>
+
+@if (error()) {
+  <div class="alert alert-danger" role="alert">{{ error() }}</div>
+}
+
+@if (showForm()) {
+  <section class="card-custom p-3 p-md-4 mb-4">
+    <h2 class="h6 mb-3">{{ editingTask() ? 'Editar tarea' : 'Registrar tarea' }}</h2>
+    <form class="row g-3" (submit)="save($event)" novalidate>
+      <div class="col-md-8">
+        <label class="form-label-custom" for="task-title">Título</label>
+        <input id="task-title" class="form-control form-control-custom" [formField]="taskForm.title" placeholder="Ej. Informe de laboratorio" />
+        @if (taskForm.title().touched() && taskForm.title().invalid()) {
+          @for (e of taskForm.title().errors(); track $index) { <div class="is-invalid-feedback d-block">{{ e.message }}</div> }
+        }
+      </div>
+      <div class="col-md-4">
+        <label class="form-label-custom" for="task-course">Curso</label>
+        <select id="task-course" class="form-select form-control-custom" [formField]="taskForm.courseId">
+          <option value="">Sin curso específico</option>
+          @for (course of courses(); track course.id) { <option [value]="course.id">{{ course.name }}</option> }
+        </select>
+      </div>
+      <div class="col-12">
+        <label class="form-label-custom" for="task-description">Descripción</label>
+        <textarea id="task-description" rows="2" class="form-control form-control-custom" [formField]="taskForm.description"></textarea>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label-custom" for="task-due">Fecha de vencimiento</label>
+        <input id="task-due" type="datetime-local" class="form-control form-control-custom" [formField]="taskForm.dueDate" />
+      </div>
+      <div class="col-md-6">
+        <label class="form-label-custom" for="task-priority">Prioridad</label>
+        <select id="task-priority" class="form-select form-control-custom" [formField]="taskForm.priority">
+          <option value="baja">Baja</option><option value="media">Media</option><option value="alta">Alta</option>
+        </select>
+      </div>
+      <div class="col-12 d-flex gap-2">
+        <button class="btn btn-primary-custom btn-sm" type="submit" [disabled]="saving()">{{ saving() ? 'Guardando…' : (editingTask() ? 'Guardar cambios' : 'Guardar tarea') }}</button>
+        <button class="btn btn-outline-secondary btn-sm" type="button" (click)="showForm.set(false)">Cancelar</button>
+      </div>
+    </form>
+  </section>
+}
+
+<div class="d-flex flex-wrap gap-2 mb-3">
+  @for (item of filters; track item.id) {
+    <button type="button" class="btn btn-sm" [class.btn-primary-custom]="filter() === item.id" [class.btn-outline-secondary]="filter() !== item.id" (click)="setFilter(item.id)">{{ item.label }}</button>
+  }
+</div>
+
+@if (loading()) {
+  <app-loading-spinner message="Cargando tus tareas…" />
+} @else {
+  <div class="d-flex flex-column gap-3">
+    @for (task of filteredTasks(); track task.id) {
+      <article class="task-card card-custom p-3" [class.task-overdue]="isOverdue(task)" [class.task-completed]="task.status === 'completada'">
+        <div class="d-flex flex-wrap justify-content-between gap-3">
+          <div class="flex-grow-1 min-w-0">
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+              <span class="task-priority" [attr.data-priority]="task.priority">Prioridad {{ priorityLabel(task.priority) }}</span>
+              @if (task.courseName) { <span class="text-xs text-muted-custom">{{ task.courseName }}</span> }
+              @if (isOverdue(task)) { <span class="badge text-bg-danger">Atrasada</span> }
+            </div>
+            <h2 class="h6 mb-1">{{ task.title }}</h2>
+            @if (task.description) { <p class="text-small text-muted-custom mb-2">{{ task.description }}</p> }
+            <p class="text-xs text-muted-custom mb-0">{{ task.dueDate ? (task.dueDate | date:'dd/MM/yyyy, HH:mm') : 'Sin fecha de vencimiento' }} · {{ statusLabel(task.status) }}</p>
+          </div>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            @if (task.status === 'pendiente' || task.status === 'en_progreso') {
+              <button class="btn btn-sm btn-outline-secondary" type="button" (click)="edit(task)">Editar</button>
+            }
+            @if (task.status === 'pendiente') {
+              <button class="btn btn-sm btn-outline-primary" type="button" (click)="changeStatus(task, 'en_progreso')">Iniciar</button>
+            }
+            @if (task.status === 'pendiente' || task.status === 'en_progreso') {
+              <button class="btn btn-sm btn-primary-custom" type="button" (click)="changeStatus(task, 'completada')">Completar</button>
+              <button class="btn btn-sm btn-outline-danger" type="button" (click)="changeStatus(task, 'cancelada')">Cancelar</button>
+            }
+            <button class="btn btn-sm btn-outline-secondary" type="button" aria-label="Eliminar tarea" title="Eliminar tarea" (click)="remove(task)"><i class="bi bi-trash"></i></button>
+          </div>
+        </div>
+      </article>
+    } @empty {
+      <app-empty-state icon="bi-check2-square" title="No hay tareas" message="No encontramos tareas en este filtro. Registra una actividad para comenzar." />
+    }
+  </div>
+}

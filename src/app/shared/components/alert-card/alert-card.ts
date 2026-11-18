@@ -9,22 +9,15 @@ import { AcademicAlert } from '../../../features/alerts/interfaces/alert.interfa
 })
 export class AlertCard {
   @Input({ required: true }) alert!: AcademicAlert;
-  @Output() markDone = new EventEmitter<number>();
+  @Output() markRead = new EventEmitter<number>();
   @Output() action = new EventEmitter<AcademicAlert>();
-
-  priorityLabel(p: string): string {
-    switch (p) {
-      case 'urgent': return 'Urgente';
-      case 'important': return 'Importante';
-      default: return 'Sugerencia';
-    }
-  }
 
   kindIcon(k: string): string {
     switch (k) {
-      case 'evaluation': return 'bi-clipboard-check';
+      case 'reminder': return 'bi-alarm';
       case 'task': return 'bi-journal-check';
-      default: return 'bi-eye';
+      case 'review': return 'bi-graph-up';
+      default: return 'bi-info-circle';
     }
   }
 }

@@ -1,8 +1,8 @@
-export type StudySessionStatus = 'pending' | 'completed' | 'cancelled';
+export type StudySessionStatus = 'pending' | 'inProgress' | 'completed' | 'cancelled';
 
 export interface StudySession {
   id: number;
-  courseId: number;
+  courseId: number | null;
   courseName: string;
   title: string;
   description: string;

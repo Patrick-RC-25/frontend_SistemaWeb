@@ -1,8 +1,12 @@
-import { inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { inject, PLATFORM_ID } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '../../features/auth/services/auth.service';
 
 export const authGuard: CanActivateFn = () => {
+  if (!isPlatformBrowser(inject(PLATFORM_ID))) {
+    return true;
+  }
   const auth = inject(AuthService);
   const router = inject(Router);
   if (auth.isAuthenticated()) {
@@ -12,6 +16,9 @@ export const authGuard: CanActivateFn = () => {
 };
 
 export const guestGuard: CanActivateFn = () => {
+  if (!isPlatformBrowser(inject(PLATFORM_ID))) {
+    return true;
+  }
   const auth = inject(AuthService);
   const router = inject(Router);
   if (!auth.isAuthenticated()) {

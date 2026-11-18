@@ -1,6 +1,6 @@
-import { Student } from '../../profile/interfaces/student.interface';
-
 export interface AuthResponse {
   authenticated: boolean;
-  student: Student;
+  email: string;
+  idUsuario: number;
+  token: string;
 }

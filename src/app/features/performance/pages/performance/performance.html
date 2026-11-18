@@ -1,67 +1,87 @@
 <app-page-header
   title="Rendimiento"
-  subtitle="Seguimiento de promedios, objetivos y evolución académica del semestre."
+  subtitle="Consulta tus promedios actuales y compáralos con las metas que estableciste."
 />
 
-<div class="row g-3 mb-4">
-  <div class="col-6 col-md-4">
-    <app-stat-card
-      label="Promedio general"
-      [value]="(data().generalAverage | number:'1.1-1') ?? '—'"
-      icon="bi-graph-up"
-      tone="primary"
-    />
+@if (loading()) {
+  <app-loading-spinner message="Cargando tu rendimiento..." />
+} @else if (error()) {
+  <div class="alert alert-danger" role="alert">{{ error() }}</div>
+} @else if (data(); as d) {
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-4">
+      <app-stat-card
+        label="Promedio general"
+        [value]="d.generalAverage === null ? '—' : (d.generalAverage | number: '1.1-2')"
+        icon="bi-graph-up"
+        tone="primary"
+        hint="Media simple de cursos con notas registradas"
+      />
+    </div>
+    <div class="col-6 col-md-4">
+      <app-stat-card
+        label="Cursos por reforzar"
+        [value]="d.coursesBelowTarget.length"
+        icon="bi-flag"
+        tone="warning"
+        hint="Debajo de la nota objetivo"
+      />
+    </div>
+    <div class="col-12 col-md-4">
+      <app-stat-card
+        label="Cursos registrados"
+        [value]="d.courses.length"
+        icon="bi-book"
+        tone="default"
+        hint="En tus periodos académicos"
+      />
+    </div>
   </div>
-  <div class="col-6 col-md-4">
-    <app-stat-card
-      label="Meta del ciclo"
-      [value]="(data().targetAverage | number:'1.1-1') ?? '—'"
-      icon="bi-flag"
-      tone="success"
-    />
-  </div>
-  <div class="col-12 col-md-4">
-    <app-stat-card
-      label="Inicio de ciclo"
-      [value]="(data().initialAverage | number:'1.1-1') ?? '—'"
-      icon="bi-arrow-up-right"
-      tone="default"
-      [hint]="'+' + (((data().generalAverage - data().initialAverage) | number:'1.1-1') ?? '0') + ' pts'"
-    />
-  </div>
-</div>
 
-<div class="card-custom p-3 p-md-4 mb-4">
-  <h2 class="section-title h6 mb-3">Evolución semanal</h2>
-  <div class="chart-box">
-    <canvas #chartCanvas aria-label="Gráfico de evolución del promedio"></canvas>
-  </div>
-</div>
+  @if (d.recommendations.length > 0) {
+    <section class="card-custom p-3 p-md-4 mb-4">
+      <h2 class="section-title h6 mb-3"><i class="bi bi-lightbulb me-1 text-warning"></i> Recomendaciones</h2>
+      <ul class="mb-0 ps-3">
+        @for (recommendation of d.recommendations; track $index) {
+          <li class="text-small mb-2">{{ recommendation }}</li>
+        }
+      </ul>
+    </section>
+  }
 
-<div class="card-custom p-3 p-md-4">
-  <h2 class="section-title h6 mb-3">Por curso</h2>
-  <div class="d-flex flex-column gap-3">
-    @for (c of data().courses; track c.courseId) {
-      <div>
-        <div class="d-flex justify-content-between align-items-center mb-1">
-          <span class="fw-medium text-small">{{ c.courseName }}</span>
-          <span class="text-small">
-            <strong>{{ c.average | number:'1.1-1' }}</strong>
-            <span
-              class="ms-1"
-              [class.text-success]="c.change > 0"
-              [class.text-danger]="c.change < 0"
-            >
-              ({{ c.change > 0 ? '+' : '' }}{{ c.change }})
-            </span>
-          </span>
-        </div>
-        <app-progress-bar
-          [value]="c.progressPercentage"
-          [showLabel]="false"
-          [tone]="c.average >= 16 ? 'success' : c.average < 14 ? 'danger' : 'warning'"
-        />
-      </div>
+  <section class="card-custom p-3 p-md-4 mb-4">
+    <h2 class="section-title h6 mb-3">Promedio actual frente a nota objetivo</h2>
+    @if (d.courses.length > 0) {
+      <div class="chart-box"><canvas #chartCanvas aria-label="Comparación de promedios y notas objetivo por curso"></canvas></div>
+    } @else {
+      <app-empty-state title="Sin cursos" message="Registra tus cursos y evaluaciones para consultar tu rendimiento." />
     }
-  </div>
-</div>
+  </section>
+
+  <section class="card-custom p-3 p-md-4">
+    <h2 class="section-title h6 mb-3">Detalle por curso</h2>
+    <div class="d-flex flex-column gap-3">
+      @for (course of d.courses; track course.courseId) {
+        <div>
+          <div class="d-flex justify-content-between align-items-start gap-3 mb-1">
+            <div>
+              <span class="fw-medium text-small">{{ course.courseName }}</span>
+              <div class="text-xs text-muted-custom">
+                @if (course.targetAverage !== null) {
+                  Meta: {{ course.targetAverage | number: '1.1-2' }}
+                  @if (course.difference !== null) {
+                    · {{ course.difference >= 0 ? 'Superas la meta por' : 'Te faltan' }} {{ (course.difference >= 0 ? course.difference : -course.difference) | number: '1.1-2' }} puntos
+                  }
+                } @else { Sin nota objetivo definida }
+              </div>
+            </div>
+            <strong>{{ course.average === null ? 'Sin notas' : (course.average | number: '1.1-2') }}</strong>
+          </div>
+          <app-progress-bar [value]="course.progressPercentage" [showLabel]="false" [tone]="course.average === null || course.targetAverage === null ? 'primary' : course.average >= course.targetAverage ? 'success' : 'warning'" />
+        </div>
+      } @empty {
+        <p class="text-small text-muted-custom mb-0">Aún no hay cursos registrados.</p>
+      }
+    </div>
+  </section>
+}
