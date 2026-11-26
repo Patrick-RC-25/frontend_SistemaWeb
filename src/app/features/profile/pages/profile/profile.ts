@@ -2,8 +2,9 @@ import { Component, inject, signal, DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin } from 'rxjs';
 import { form, FormField, required, minLength } from '@angular/forms/signals';
-import { finalize } from 'rxjs';
+import { finalize, timeout } from 'rxjs';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
+import { RouterLink } from '@angular/router';
 import { ProgressBar } from '../../../../shared/components/progress-bar/progress-bar';
 import { LoadingSpinner } from '../../../../shared/components/loading-spinner/loading-spinner';
 import { ProfileService } from '../../services/profile.service';
@@ -29,7 +30,7 @@ function todayString(): string {
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [PageHeader, ProgressBar, LoadingSpinner, FormField],
+  imports: [PageHeader, ProgressBar, LoadingSpinner, FormField, RouterLink],
   templateUrl: './profile.html',
   styleUrl: './profile.css',
 })
@@ -43,6 +44,7 @@ export class Profile {
   readonly goals = signal<AcademicGoal[]>([]);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  readonly success = signal<string | null>(null);
   readonly loadError = signal<string | null>(null);
   readonly showGoalForm = signal(false);
   readonly savingGoal = signal(false);
@@ -80,7 +82,11 @@ export class Profile {
       student: this.profileService.mostrarEstudiante(this.auth.currentEmail() ?? ''),
       goals: this.profileService.mostrarObjetivos(),
     })
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        timeout({ first: 15000 }),
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false)),
+      )
       .subscribe({
         next: ({ student, goals }) => {
           this.student.set(student);
@@ -92,11 +98,9 @@ export class Profile {
             career: student.career,
             cycle: student.cycle,
           });
-          this.loading.set(false);
         },
         error: (error) => {
           this.loadError.set(getApiErrorMessage(error));
-          this.loading.set(false);
         },
       });
   }
@@ -139,6 +143,7 @@ export class Profile {
   abrirObjetivo(): void {
     this.goalModel.set({ title: '', description: '', startDate: todayString(), limitDate: '' });
     this.error.set(null);
+    this.success.set(null);
     this.showGoalForm.set(true);
   }
 
@@ -162,23 +167,19 @@ export class Profile {
       fecha_inicio: model.startDate,
       fecha_limite: model.limitDate || null,
     }).pipe(
+      timeout({ first: 15000 }),
       takeUntilDestroyed(this.destroyRef),
       finalize(() => this.savingGoal.set(false)),
     ).subscribe({
       next: (goal) => {
         this.goals.update((items) => [...items, goal]);
         this.showGoalForm.set(false);
+        this.success.set('Objetivo académico guardado correctamente.');
       },
       error: (error: unknown) => this.error.set(getApiErrorMessage(error)),
     });
   }
 
-  completarObjetivo(goal: AcademicGoal): void {
-    this.profileService.completarObjetivo(goal).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (updated) => this.goals.update((items) => items.map((item) => item.id === goal.id ? updated : item)),
-      error: (error: unknown) => this.error.set(getApiErrorMessage(error)),
-    });
-  }
 
   eliminarObjetivo(goal: AcademicGoal): void {
     if (!confirm(`¿Eliminar el objetivo «${goal.title}»?`)) return;

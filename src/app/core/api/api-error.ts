@@ -5,6 +5,9 @@ export function getApiErrorMessage(
   fallback = 'No se pudo completar la operación. Inténtalo nuevamente.',
 ): string {
   if (!(error instanceof HttpErrorResponse)) {
+    if (error instanceof Error && error.name === 'TimeoutError') {
+      return 'La solicitud tardó demasiado. El servidor no respondió a tiempo; inténtalo nuevamente.';
+    }
     if (error instanceof Error && error.name === 'AbortError') {
       return 'La petición se canceló. Intenta de nuevo.';
     }

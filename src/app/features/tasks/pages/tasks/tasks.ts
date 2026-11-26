@@ -1,12 +1,14 @@
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize, map, switchMap } from 'rxjs';
+import { catchError, finalize, map, of, switchMap } from 'rxjs';
 import { form, FormField, minLength, required } from '@angular/forms/signals';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { EmptyState } from '../../../../shared/components/empty-state/empty-state';
 import { LoadingSpinner } from '../../../../shared/components/loading-spinner/loading-spinner';
 import { CoursesService } from '../../../courses/services/courses.service';
+import { ProfileService } from '../../../profile/services/profile.service';
+import { AcademicGoal } from '../../../profile/interfaces/academic-goal.interface';
 import { Course } from '../../../courses/interfaces/course.interface';
 import { AcademicTask, TaskStatus } from '../../interfaces/task.interface';
 import { TaskFormModel } from '../../interfaces/task-form.interface';
@@ -34,10 +36,12 @@ type TaskFilter = 'all' | 'pendiente' | 'en_progreso' | 'completada' | 'atrasada
 export class Tasks {
   private readonly tasksService = inject(TasksService);
   private readonly coursesService = inject(CoursesService);
+  private readonly profileService = inject(ProfileService);
   private readonly destroyRef = inject(DestroyRef);
 
   readonly tasks = signal<AcademicTask[]>([]);
   readonly courses = signal<Course[]>([]);
+  readonly goals = signal<AcademicGoal[]>([]);
   readonly loading = signal(true);
   readonly saving = signal(false);
   readonly error = signal<string | null>(null);
@@ -54,7 +58,7 @@ export class Tasks {
   readonly now = signal(Date.now());
 
   private readonly model = signal<TaskFormModel>({
-    courseId: '', title: '', description: '', dueDate: localDateTime(), priority: 'media',
+    courseId: '', objectiveId: '', title: '', description: '', dueDate: localDateTime(), priority: 'media',
   });
 
   readonly taskForm = form(this.model, (schema) => {
@@ -83,15 +87,20 @@ export class Tasks {
     this.loading.set(true);
     this.error.set(null);
     this.coursesService.getCourses().pipe(
-      switchMap((courses) => {
-        const names = new Map<number, string>(courses.map((course) => [course.id, course.name]));
-        return this.tasksService.listar(names).pipe(map((tasks) => ({ courses, tasks })));
-      }),
+      switchMap((courses) => this.profileService.mostrarObjetivos().pipe(
+        catchError(() => of([] as AcademicGoal[])),
+        switchMap((goals) => {
+          const names = new Map<number, string>(courses.map((course) => [course.id, course.name]));
+          const objectiveNames = new Map<number, string>(goals.map((goal) => [goal.id, goal.title]));
+          return this.tasksService.listar(names, objectiveNames).pipe(map((tasks) => ({ courses, goals, tasks })));
+        }),
+      )),
       takeUntilDestroyed(this.destroyRef),
       finalize(() => this.loading.set(false)),
     ).subscribe({
-      next: ({ courses, tasks }) => {
+      next: ({ courses, goals, tasks }) => {
         this.courses.set(courses);
+        this.goals.set(goals);
         this.tasks.set(tasks);
       },
       error: (error: unknown) => this.error.set(getApiErrorMessage(error)),
@@ -105,7 +114,7 @@ export class Tasks {
   openForm(): void {
     this.editingTask.set(null);
     this.model.set({
-      courseId: '', title: '', description: '', dueDate: localDateTime(), priority: 'media',
+      courseId: '', objectiveId: '', title: '', description: '', dueDate: localDateTime(), priority: 'media',
     });
     this.error.set(null);
     this.showForm.set(true);
@@ -129,7 +138,8 @@ export class Tasks {
     ).subscribe({
       next: (created: TareaApi) => {
         const course = this.courses().find((item) => item.id === created.id_curso);
-        const updatedTask = toAcademicTask(created, course?.name ?? (created.id_curso === null ? '' : 'Curso de otro periodo'));
+        const objective = this.goals().find((item) => item.id === created.id_objetivo);
+        const updatedTask = toAcademicTask(created, course?.name ?? (created.id_curso === null ? '' : 'Curso de otro periodo'), objective?.title ?? '');
         this.tasks.update((items) => editing
           ? items.map((item) => item.id === editing.id ? updatedTask : item)
           : [updatedTask, ...items]);
@@ -145,6 +155,7 @@ export class Tasks {
     this.editingTask.set(task);
     this.model.set({
       courseId: task.courseId === null ? '' : String(task.courseId),
+      objectiveId: task.objectiveId === null ? '' : String(task.objectiveId),
       title: task.title,
       description: task.description,
       dueDate: task.dueDate ? task.dueDate.slice(0, 16) : '',
@@ -158,8 +169,9 @@ export class Tasks {
     this.tasksService.actualizar(task, status).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (updated) => {
         const course = this.courses().find((item) => item.id === updated.id_curso);
+        const objective = this.goals().find((item) => item.id === updated.id_objetivo);
         this.tasks.update((items) => items.map((item) => item.id === task.id
-          ? toAcademicTask(updated, course?.name ?? (updated.id_curso === null ? '' : 'Curso de otro periodo')) : item));
+          ? toAcademicTask(updated, course?.name ?? (updated.id_curso === null ? '' : 'Curso de otro periodo'), objective?.title ?? '') : item));
       },
       error: (error: unknown) => this.error.set(getApiErrorMessage(error)),
     });

@@ -21,6 +21,9 @@
 @if (error()) {
   <div class="alert alert-danger" role="alert">{{ error() }}</div>
 }
+@if (success()) {
+  <div class="alert alert-success py-2" role="status">{{ success() }}</div>
+}
 
 @if (showPeriodForm()) {
   <div class="card-custom p-3 p-md-4 mb-3">
@@ -150,10 +153,47 @@
 
           <div class="d-flex justify-content-between align-items-center mt-4 mb-3">
             <h3 class="h6 mb-0">Calificaciones</h3>
-            <button type="button" class="btn btn-sm btn-primary" (click)="openGradeForm()">
+            <button type="button" class="btn btn-sm btn-primary" (click)="openGradeForm()" [disabled]="weightsComplete() || weightsExceeded()">
               <i class="bi bi-plus-lg"></i> Nueva nota
             </button>
           </div>
+
+          <div class="alert alert-info py-2 small mb-3">
+            <strong>¿Qué significa el peso?</strong> Es la parte de la nota final que aporta cada evaluación. Por ejemplo, un peso de 25 % significa que esa evaluación representa una cuarta parte del promedio del curso.
+            La contribución al promedio del curso se calcula como nota obtenida × (peso ÷ 100). Los pesos deben sumar 100 % para representar toda la nota del curso.
+            <div class="mt-2 d-flex flex-wrap gap-3">
+              <span><strong>Peso registrado:</strong> {{ totalWeight() | number:'1.0-2' }} % de 100 %</span>
+              <span><strong>Falta:</strong> {{ remainingWeight() | number:'1.0-2' }} %</span>
+            </div>
+            @if (weightsComplete()) {
+              <div class="text-success fw-semibold mt-1" role="status">OK, ya no puedes ingresar más pesos. La ponderación llegó al 100 %.</div>
+            } @else if (weightsExceeded()) {
+              <div class="text-danger fw-semibold mt-1" role="alert">Los pesos exceden el 100 %. Ajusta las ponderaciones.</div>
+            } @else {
+              <div class="mt-1">Para saber la nota más importante que necesitas para aprobar debes ingresar todos los pesos de las notas. Actualmente faltan {{ remainingWeight() | number:'1.0-2' }} %.</div>
+            }
+          </div>
+
+          <section class="border rounded p-3 mb-3" aria-labelledby="final-grade-title">
+            <h3 id="final-grade-title" class="h6 mb-2">Nota necesaria en el examen final</h3>
+            @if (finalExamCalculation().status === 'weights-incomplete') {
+              <p class="small text-muted-custom mb-0">Completa el 100 % de los pesos para calcular la nota necesaria. La nota mínima para aprobar es 10.5/20.</p>
+            } @else if (finalExamCalculation().status === 'tie') {
+              <p class="small text-warning mb-0">Hay un empate entre las evaluaciones con mayor peso ({{ finalExamCalculation().names?.join(', ') }}). Para evitar un cálculo incorrecto, asigna un peso mayor al examen final.</p>
+            } @else if (finalExamCalculation().status === 'pending-grades') {
+              <p class="small text-muted-custom mb-0">Los pesos ya suman 100 %. Registra las notas de las demás evaluaciones para calcular cuánto necesitas en «{{ finalExamCalculation().finalName }}», identificada como la evaluación de mayor peso.</p>
+            } @else if (finalExamCalculation().status === 'impossible') {
+              <p class="small text-danger mb-0">Ni obteniendo 20/20 en «{{ finalExamCalculation().finalName }}» alcanzarías la nota mínima de aprobación (10.5).</p>
+            } @else if (finalExamCalculation().status === 'already-approved') {
+              <p class="small text-success mb-0">Ya alcanzaste la nota mínima de aprobación (10.5) con las evaluaciones registradas; en la evaluación de mayor peso no necesitas puntos adicionales para llegar a 10.5.</p>
+            } @else if (finalExamCalculation().status === 'final-already-graded') {
+              <p class="small mb-0">La evaluación de mayor peso es <strong>{{ finalExamCalculation().finalName }}</strong> ({{ finalExamCalculation().finalWeight | number:'1.0-2' }} %) y ya tiene registrada una nota de <strong>{{ finalExamCalculation().actualScore | number:'1.2-2' }}/20</strong>.</p>
+            } @else if (finalExamCalculation().status === 'calculated') {
+              <p class="small mb-0">La evaluación de mayor peso es <strong>{{ finalExamCalculation().finalName }}</strong> ({{ finalExamCalculation().finalWeight | number:'1.0-2' }} %). Para aprobar con 10.5/20 necesitas obtener <strong>{{ finalExamCalculation().requiredScore | number:'1.2-2' }}/20</strong>.</p>
+            } @else {
+              <p class="small text-muted-custom mb-0">Registra las evaluaciones y sus pesos para obtener el cálculo.</p>
+            }
+          </section>
 
           @if (showGradeForm()) {
             <form (submit)="guardarNota($event)" class="row g-2 mb-3 border rounded p-2 bg-light">
@@ -170,7 +210,7 @@
               </div>
               <div class="col-md-2">
                 <label class="form-label small" for="ponderacion">Ponderación %</label>
-                <input id="ponderacion" type="number" class="form-control form-control-sm" [formField]="notaForm.ponderacion" />
+                <input id="ponderacion" type="number" class="form-control form-control-sm" [formField]="notaForm.ponderacion" step="0.01" />
               </div>
               <div class="col-md-2">
                 <label class="form-label small" for="notaMaxima">Nota máxima</label>
@@ -178,20 +218,22 @@
               </div>
               <div class="col-md-4">
                 <label class="form-label small" for="notaObtenida">Nota obtenida (opcional)</label>
-                <input id="notaObtenida" type="number" class="form-control form-control-sm" [formField]="notaForm.notaObtenida" step="0.1" />
+                <input id="notaObtenida" type="text" inputmode="decimal" class="form-control form-control-sm" [formField]="notaForm.notaObtenida" placeholder="Ej. 17.85" />
+                <div class="form-text">De 0 a 20, admite hasta 2 decimales. Ejemplo: 17.85.</div>
               </div>
               <div class="col-md-4">
                 <label class="form-label small" for="fechaEvaluacion">Fecha (opcional)</label>
                 <input id="fechaEvaluacion" type="date" class="form-control form-control-sm" [formField]="notaForm.fechaEvaluacion" />
               </div>
               <div class="col-md-4 d-flex align-items-end gap-1">
-                <button class="btn btn-sm btn-primary" type="submit" [disabled]="savingGrade()">Guardar</button>
+                <button class="btn btn-sm btn-primary" type="submit" [disabled]="savingGrade()">{{ savingGrade() ? 'Guardando…' : 'Guardar' }}</button>
                 <button class="btn btn-sm btn-outline-secondary" type="button" (click)="showGradeForm.set(false)">Cancelar</button>
               </div>
             </form>
           }
 
           @if (selectedGrades().length) {
+            <div class="small text-muted-custom mb-2">El aporte actual muestra cuántos puntos de los 20 posibles ya aporta cada evaluación al promedio ponderado. Las evaluaciones sin nota todavía no aportan puntos.</div>
             <div class="table-responsive">
               <table class="table table-sm align-middle mb-0">
                 <thead>
@@ -200,6 +242,7 @@
                     <th>Tipo</th>
                     <th>Nota</th>
                     <th>Peso</th>
+                    <th>Aporte actual</th>
                     <th>Fecha</th>
                     <th>Acciones</th>
                   </tr>
@@ -209,8 +252,9 @@
                     <tr>
                       <td class="fw-medium">{{ g.name }}</td>
                       <td class="text-small">{{ g.typeLabel }}</td>
-                      <td class="fw-semibold">{{ g.score === null ? 'Pendiente' : (g.score | number: '1.1-1') }} / {{ g.maxScore }}</td>
-                      <td>{{ g.weight }}%</td>
+                      <td class="fw-semibold">{{ g.score === null ? 'Pendiente' : (g.score | number: '1.2-2') }} / {{ g.maxScore }}</td>
+                      <td>{{ g.weight | number:'1.0-2' }} % del promedio</td>
+                      <td>{{ aporteActual(g) === null ? 'Pendiente' : ((aporteActual(g) ?? 0) | number:'1.2-2') + ' puntos' }}</td>
                       <td class="text-small text-muted-custom">{{ g.date || '—' }}</td>
                       <td>
                         <div class="d-flex gap-1">

@@ -9,6 +9,7 @@
   <div class="alert alert-danger" role="alert">{{ loadError() }}</div>
 } @else if (student(); as s) {
   @if (error()) { <div class="alert alert-danger" role="alert">{{ error() }}</div> }
+  @if (success()) { <div class="alert alert-success py-2" role="status">{{ success() }}</div> }
   @if (saved()) {
     <div class="alert alert-success py-2 text-small" role="status">
       Cambios guardados correctamente.
@@ -91,8 +92,12 @@
         </form>
       </div>
 
-      <div class="alert alert-info small mb-0">
-        Las alertas registradas se gestionan desde el módulo Alertas. La configuración de preferencias de notificación todavía no está disponible.
+      <h2 class="h6 mt-4 mb-2">Notificaciones</h2>
+      <div class="alert alert-info small mb-2">
+        Las alertas registradas se gestionan desde el módulo <a routerLink="/alertas" class="alert-link">Alertas</a>.
+      </div>
+      <div class="alert alert-secondary small mb-0" role="status">
+        La configuración de preferencias de notificación todavía no está disponible.
       </div>
     </div>
 
@@ -124,30 +129,35 @@
               <input id="goal-limit" type="date" class="form-control form-control-sm" [formField]="goalForm.limitDate" />
             </div>
             <div class="col-12 d-flex gap-2">
-              <button type="submit" class="btn btn-sm btn-primary-custom" [disabled]="savingGoal()">{{ savingGoal() ? 'Guardando…' : 'Guardar objetivo' }}</button>
+              <button type="submit" class="btn btn-sm btn-primary-custom" [disabled]="savingGoal()">{{ savingGoal() ? 'Guardando objetivo…' : 'Guardar objetivo' }}</button>
               <button type="button" class="btn btn-sm btn-outline-secondary" (click)="showGoalForm.set(false)">Cancelar</button>
             </div>
+            @if (savingGoal()) {
+              <div class="col-12 small text-muted" role="status">Guardando tu objetivo. Espera un momento…</div>
+            }
           </form>
         }
         @for (g of goals(); track g.id) {
           <div class="mb-4">
             <div class="d-flex justify-content-between mb-1">
               <span class="fw-medium text-small">{{ g.title }}</span>
-              <span class="text-small">{{ g.currentValue }} / {{ g.targetValue }}</span>
+              <span class="text-small">{{ g.totalTasks > 0 ? g.completedTasks + ' / ' + g.totalTasks + ' tareas · ' + g.progressPercentage + '%' : 'Sin tareas' }}</span>
             </div>
-            <app-progress-bar [value]="g.progressPercentage" [showLabel]="false" tone="success" />
+            @if (g.totalTasks > 0) {
+              <app-progress-bar [value]="g.progressPercentage" [showLabel]="false" tone="success" />
+            } @else {
+              <div class="small text-muted-custom py-2">Sin tareas vinculadas. Vincula tareas desde el módulo Tareas para calcular el progreso.</div>
+            }
             <div class="d-flex justify-content-between align-items-center mt-2">
-              <span class="text-xs text-muted-custom">{{ g.status === 'completado' ? 'Completado' : g.limitDate ? 'Límite: ' + g.limitDate : 'Sin fecha límite' }}</span>
+              <span class="text-xs text-muted-custom">{{ g.status === 'completado' ? 'Completado' : g.status === 'en_progreso' ? 'En progreso' : g.status === 'cancelado' ? 'Cancelado' : g.limitDate ? 'Límite: ' + g.limitDate : 'Pendiente' }}</span>
               <div class="d-flex gap-1">
-                @if (g.status !== 'completado' && g.status !== 'cancelado') {
-                  <button type="button" class="btn btn-sm btn-outline-success" (click)="completarObjetivo(g)">Completar</button>
-                }
                 <button type="button" class="btn btn-sm btn-outline-danger" aria-label="Eliminar objetivo" (click)="eliminarObjetivo(g)"><i class="bi bi-trash"></i></button>
               </div>
             </div>
             @if (g.description) {
               <p class="text-xs text-muted-custom mt-2 mb-0">{{ g.description }}</p>
             }
+            <a routerLink="/tareas" class="small">Gestionar tareas vinculadas</a>
           </div>
         } @empty {
           <p class="text-small text-muted-custom mb-0">Aún no tienes objetivos registrados.</p>
