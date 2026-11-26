@@ -27,15 +27,19 @@ interface ObjetivoApi {
   fecha_limite: string | null;
   progreso: number;
   estado: 'pendiente' | 'en_progreso' | 'completado' | 'cancelado';
+  total_tareas: number;
+  tareas_completadas: number;
 }
 
 function toAcademicGoal(objetivo: ObjetivoApi): AcademicGoal {
   return {
     id: objetivo.id_objetivo,
     title: objetivo.titulo,
-    currentValue: objetivo.progreso,
-    targetValue: 100,
+    currentValue: objetivo.tareas_completadas,
+    targetValue: objetivo.total_tareas,
     progressPercentage: objetivo.progreso,
+    totalTasks: objetivo.total_tareas,
+    completedTasks: objetivo.tareas_completadas,
     description: objetivo.descripcion ?? undefined,
     courseId: objetivo.id_curso,
     startDate: objetivo.fecha_inicio,
@@ -81,21 +85,9 @@ export class ProfileService {
       descripcion: datos.descripcion.trim() || null,
       fecha_inicio: datos.fecha_inicio,
       fecha_limite: datos.fecha_limite,
-      progreso: 0,
     }).pipe(map(toAcademicGoal));
   }
 
-  completarObjetivo(objetivo: AcademicGoal): Observable<AcademicGoal> {
-    return this.http.put<ObjetivoApi>(`${this.apiUrl}/objetivos/${objetivo.id}`, {
-      id_curso: objetivo.courseId,
-      titulo: objetivo.title,
-      descripcion: objetivo.description ?? null,
-      fecha_inicio: objetivo.startDate,
-      fecha_limite: objetivo.limitDate,
-      progreso: 100,
-      estado: 'completado',
-    }).pipe(map(toAcademicGoal));
-  }
 
   eliminarObjetivo(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/objetivos/${id}`);

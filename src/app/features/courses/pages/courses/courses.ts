@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed, DestroyRef } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize, forkJoin, map, of, switchMap } from 'rxjs';
+import { finalize, forkJoin, map, of, switchMap, timeout } from 'rxjs';
 import { form, FormField, required, minLength, min, max } from '@angular/forms/signals';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { ProgressBar } from '../../../../shared/components/progress-bar/progress-bar';
@@ -38,8 +38,18 @@ interface NotaFormModelo {
   nombre: string;
   ponderacion: number;
   notaMaxima: number;
-  notaObtenida: number | null;
+  notaObtenida: string;
   fechaEvaluacion: string;
+}
+
+interface FinalExamCalculation {
+  status: 'no-grades' | 'weights-incomplete' | 'tie' | 'invalid-final-weight' | 'pending-grades' | 'impossible' | 'already-approved' | 'calculated' | 'final-already-graded';
+  names?: string[];
+  finalName?: string;
+  requiredScore?: number;
+  finalWeight?: number;
+  accumulated?: number;
+  actualScore?: number;
 }
 
 @Component({
@@ -62,6 +72,7 @@ export class Courses {
   readonly selectedId = signal<number | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  readonly success = signal<string | null>(null);
   readonly loadError = signal<string | null>(null);
   readonly showForm = signal(false);
   readonly editingCourseId = signal<number | null>(null);
@@ -80,6 +91,44 @@ export class Courses {
     const id = this.selectedId();
     if (id === null) return [];
     return this.grades().filter((grade) => grade.courseId === id);
+  });
+
+  readonly totalWeight = computed(() =>
+    Math.round(this.selectedGrades().reduce((total, grade) => total + grade.weight, 0) * 100) / 100,
+  );
+  readonly remainingWeight = computed(() => Math.max(0, Math.round((100 - this.totalWeight()) * 100) / 100));
+  readonly weightsComplete = computed(() => Math.abs(this.totalWeight() - 100) < 0.005);
+  readonly weightsExceeded = computed(() => this.totalWeight() > 100.005);
+
+  readonly finalExamCalculation = computed<FinalExamCalculation>(() => {
+    const grades = this.selectedGrades();
+    if (!grades.length) return { status: 'no-grades' as const };
+    if (!this.weightsComplete()) return { status: 'weights-incomplete' as const };
+    const highest = Math.max(...grades.map((grade) => grade.weight));
+    const finalists = grades.filter((grade) => Math.abs(grade.weight - highest) < 0.005);
+    if (finalists.length !== 1) return { status: 'tie' as const, names: finalists.map((grade) => grade.name) };
+    const finalExam = finalists[0];
+    if (finalExam.weight <= 0) return { status: 'invalid-final-weight' as const };
+    if (finalExam.score !== null) {
+      return { status: 'final-already-graded', finalName: finalExam.name, finalWeight: finalExam.weight, actualScore: finalExam.score };
+    }
+    const previousGrades = grades.filter((grade) => grade.id !== finalExam.id);
+    if (previousGrades.some((grade) => grade.score === null)) {
+      return { status: 'pending-grades', finalName: finalExam.name };
+    }
+    // Promedio ponderado en escala 0–20: cada nota aporta nota × (peso / 100).
+    const accumulated = previousGrades.reduce(
+      (total, grade) => total + (grade.score ?? 0) * (grade.weight / 100),
+      0,
+    );
+    const requiredScore = (10.5 - accumulated) / (finalExam.weight / 100);
+    return {
+      status: requiredScore > 20 ? 'impossible' as const : requiredScore <= 0 ? 'already-approved' as const : 'calculated' as const,
+      finalName: finalExam.name,
+      requiredScore: Math.max(0, requiredScore),
+      accumulated,
+      finalWeight: finalExam.weight,
+    };
   });
 
   private readonly modelo = signal<CursoFormModelo>({
@@ -114,14 +163,14 @@ export class Courses {
     nombre: '',
     ponderacion: 20,
     notaMaxima: 20,
-    notaObtenida: null,
+    notaObtenida: '',
     fechaEvaluacion: '',
   });
 
   readonly notaForm = form(this.notaModelo, (e) => {
     required(e.nombre, { message: 'Nombre obligatorio' });
     minLength(e.nombre, 2, { message: 'Mínimo 2 caracteres' });
-    min(e.ponderacion, 1, { message: 'Mínimo 1%' });
+    min(e.ponderacion, 0, { message: 'El peso no puede ser negativo' });
     max(e.ponderacion, 100, { message: 'Máximo 100%' });
   });
 
@@ -146,6 +195,7 @@ export class Courses {
       switchMap(({ courses, periods }) => courses.length
         ? this.coursesService.getGrades().pipe(map((grades) => ({ courses, periods, grades })))
         : of({ courses, periods, grades: [] as Grade[] })),
+      timeout({ first: 15000 }),
       takeUntilDestroyed(this.destroyRef),
       finalize(() => this.loading.set(false)),
     ).subscribe({
@@ -186,7 +236,7 @@ export class Courses {
       nombre: model.nombre.trim(),
       fecha_inicio: model.fechaInicio,
       fecha_fin: model.fechaFin,
-    }).pipe(finalize(() => this.savingPeriod.set(false))).subscribe({
+    }).pipe(timeout({ first: 15000 }), finalize(() => this.savingPeriod.set(false))).subscribe({
       next: () => {
         this.showPeriodForm.set(false);
         this.selectedId.set(null);
@@ -228,7 +278,7 @@ export class Courses {
     const request = editingId === null
       ? this.coursesService.crearCurso(datos)
       : this.coursesService.actualizarCurso(editingId, datos);
-    request.pipe(finalize(() => this.saving.set(false)))
+    request.pipe(timeout({ first: 15000 }), finalize(() => this.saving.set(false)))
       .subscribe({
         next: (course) => {
           this.courses.update((list) => editingId === null
@@ -267,24 +317,32 @@ export class Courses {
   }
 
   openGradeForm(): void {
-    if (this.selectedId() == null) return;
+    if (this.selectedId() == null || this.weightsComplete() || this.weightsExceeded()) return;
+    this.error.set(null);
+    this.success.set(null);
     this.editingGradeId.set(null);
-    this.notaModelo.set({ idTipoEvaluacion: '1', nombre: '', ponderacion: 20, notaMaxima: 20, notaObtenida: null, fechaEvaluacion: '' });
+    this.notaModelo.set({ idTipoEvaluacion: '1', nombre: '', ponderacion: Math.min(20, this.remainingWeight()), notaMaxima: 20, notaObtenida: '', fechaEvaluacion: '' });
     this.showGradeForm.set(true);
   }
 
 
   editGrade(grade: Grade): void {
+    this.error.set(null);
+    this.success.set(null);
     this.editingGradeId.set(grade.id);
     this.notaModelo.set({
       idTipoEvaluacion: String(grade.typeId),
       nombre: grade.name,
       ponderacion: grade.weight,
       notaMaxima: 20,
-      notaObtenida: grade.score,
+      notaObtenida: grade.score === null ? '' : String(grade.score),
       fechaEvaluacion: grade.date,
     });
     this.showGradeForm.set(true);
+  }
+
+  aporteActual(grade: Grade): number | null {
+    return grade.score === null ? null : grade.score * (grade.weight / 100);
   }
 
   deleteGrade(grade: Grade): void {
@@ -307,23 +365,46 @@ export class Courses {
     if (idCurso == null) return;
     if (this.notaForm().invalid()) {
       this.notaForm.nombre().markAsTouched();
+      this.notaForm.ponderacion().markAsTouched();
       return;
     }
     this.savingGrade.set(true);
     this.error.set(null);
+    this.success.set(null);
     const m = this.notaModelo();
-    const nota = m.notaObtenida === null ? null : Number(m.notaObtenida);
+    const notaTexto = m.notaObtenida.trim();
+    if (notaTexto && !/^\d+(?:[.,]\d{1,2})?$/.test(notaTexto)) {
+      this.error.set('Ingresa una nota válida de 0 a 20 con un máximo de 2 decimales (por ejemplo, 17.85).');
+      this.savingGrade.set(false);
+      return;
+    }
+    const nota = notaTexto === '' ? null : Number(notaTexto.replace(',', '.'));
     const editingIdForWeight = this.editingGradeId();
     const existingWeight = this.selectedGrades()
       .filter((grade) => grade.id !== editingIdForWeight)
       .reduce((total, grade) => total + grade.weight, 0);
-    if (existingWeight + Number(m.ponderacion) > 100.0001) {
-      this.error.set(`La ponderación total superaría el 100 % (actual: ${existingWeight} %).`);
+    if (editingIdForWeight === null && this.weightsComplete()) {
+      this.error.set('Los pesos ya suman 100 %. No puedes añadir otra evaluación.');
       this.savingGrade.set(false);
       return;
     }
-    if (nota !== null && (nota < 0 || nota > 20)) {
-      this.error.set('La nota obtenida debe estar entre 0 y la nota máxima.');
+    if (!Number.isFinite(Number(m.ponderacion)) || Number(m.ponderacion) < 0) {
+      this.error.set('El peso debe ser un número mayor o igual que 0.');
+      this.savingGrade.set(false);
+      return;
+    }
+    if (Math.abs(Number(m.ponderacion) * 100 - Math.round(Number(m.ponderacion) * 100)) > 0.000001) {
+      this.error.set('El peso admite como máximo 2 decimales.');
+      this.savingGrade.set(false);
+      return;
+    }
+    if (existingWeight + Number(m.ponderacion) > 100.0001) {
+      this.error.set(`La ponderación total superaría el 100 % (actual: ${existingWeight} %). Quedan ${Math.max(0, 100 - existingWeight).toFixed(2)} % disponibles.`);
+      this.savingGrade.set(false);
+      return;
+    }
+    if (nota !== null && (!Number.isFinite(nota) || nota < 0 || nota > 20)) {
+      this.error.set('La nota obtenida debe estar entre 0 y 20.');
       this.savingGrade.set(false);
       return;
     }
@@ -340,13 +421,14 @@ export class Courses {
     const request = editingId === null
       ? this.coursesService.crearEvaluacion(payload)
       : this.coursesService.actualizarEvaluacion(editingId, payload);
-    request.pipe(finalize(() => this.savingGrade.set(false))).subscribe({
+    request.pipe(timeout({ first: 15000 }), finalize(() => this.savingGrade.set(false))).subscribe({
       next: (grade) => {
         this.grades.update((list) => editingId === null
           ? [...list, grade]
           : list.map((item) => item.id === editingId ? grade : item));
         this.showGradeForm.set(false);
         this.editingGradeId.set(null);
+        this.success.set('Evaluación guardada correctamente.');
         this.coursesService.getCourses().subscribe({
           next: (courses) => this.courses.set(courses),
           error: () => undefined,

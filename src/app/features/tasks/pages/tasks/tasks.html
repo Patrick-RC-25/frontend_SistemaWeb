@@ -27,6 +27,18 @@
           @for (course of courses(); track course.id) { <option [value]="course.id">{{ course.name }}</option> }
         </select>
       </div>
+      <div class="col-md-6">
+        <label class="form-label-custom" for="task-objective">Objetivo académico (opcional)</label>
+        <select id="task-objective" class="form-select form-control-custom" [formField]="taskForm.objectiveId">
+          <option value="">Sin objetivo vinculado</option>
+          @for (goal of goals(); track goal.id) {
+            @if (goal.status !== 'cancelado' && goal.status !== 'completado') {
+              <option [value]="goal.id">{{ goal.title }}</option>
+            }
+          }
+        </select>
+        <div class="form-text">Cada tarea vinculada cuenta por igual para el progreso; las tareas canceladas se excluyen.</div>
+      </div>
       <div class="col-12">
         <label class="form-label-custom" for="task-description">Descripción</label>
         <textarea id="task-description" rows="2" class="form-control form-control-custom" [formField]="taskForm.description"></textarea>
@@ -66,6 +78,7 @@
             <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
               <span class="task-priority" [attr.data-priority]="task.priority">Prioridad {{ priorityLabel(task.priority) }}</span>
               @if (task.courseName) { <span class="text-xs text-muted-custom">{{ task.courseName }}</span> }
+              @if (task.objectiveTitle) { <span class="text-xs text-muted-custom"><i class="bi bi-bullseye me-1"></i>{{ task.objectiveTitle }}</span> }
               @if (isOverdue(task)) { <span class="badge text-bg-danger">Atrasada</span> }
             </div>
             <h2 class="h6 mb-1">{{ task.title }}</h2>

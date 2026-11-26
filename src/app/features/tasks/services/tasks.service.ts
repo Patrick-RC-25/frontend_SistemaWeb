@@ -12,11 +12,12 @@ export class TasksService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = `${environment.apiUrl}/tareas`;
 
-  listar(courseNames: Map<number, string> = new Map()): Observable<AcademicTask[]> {
+  listar(courseNames: Map<number, string> = new Map(), objectiveNames: Map<number, string> = new Map()): Observable<AcademicTask[]> {
     return this.http.get<TareaApi[]>(this.apiUrl).pipe(
       map((items) => items.map((item) => toAcademicTask(
         item,
         item.id_curso === null ? '' : courseNames.get(item.id_curso) ?? 'Curso de otro periodo',
+        item.id_objetivo === null ? '' : objectiveNames.get(item.id_objetivo) ?? 'Objetivo académico',
       ))),
     );
   }
@@ -28,6 +29,7 @@ export class TasksService {
   actualizar(task: AcademicTask, status: AcademicTask['status']): Observable<TareaApi> {
     return this.http.put<TareaApi>(`${this.apiUrl}/${task.id}`, {
       id_curso: task.courseId,
+      id_objetivo: task.objectiveId,
       titulo: task.title,
       descripcion: task.description || null,
       fecha_vencimiento: task.dueDate,
@@ -46,11 +48,13 @@ export class TasksService {
 
   private toPayload(model: TaskFormModel, status: TareaWriteApi['estado']): TareaWriteApi {
     const courseId = model.courseId ? Number(model.courseId) : null;
+    const objectiveId = model.objectiveId ? Number(model.objectiveId) : null;
     const dueDate = model.dueDate.trim()
       ? model.dueDate.length === 16 ? `${model.dueDate}:00` : model.dueDate
       : null;
     return {
       id_curso: courseId !== null && Number.isFinite(courseId) ? courseId : null,
+      id_objetivo: objectiveId !== null && Number.isFinite(objectiveId) ? objectiveId : null,
       titulo: model.title.trim(),
       descripcion: model.description.trim() || null,
       fecha_vencimiento: dueDate,

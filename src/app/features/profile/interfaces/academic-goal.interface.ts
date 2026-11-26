@@ -4,6 +4,8 @@ export interface AcademicGoal {
   currentValue: number;
   targetValue: number;
   progressPercentage: number;
+  totalTasks: number;
+  completedTasks: number;
   description?: string;
   courseId: number | null;
   startDate: string;

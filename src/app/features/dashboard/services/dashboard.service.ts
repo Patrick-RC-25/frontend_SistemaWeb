@@ -32,6 +32,8 @@ interface DashboardApi {
     fecha_limite: string | null;
     progreso: number;
     estado: string;
+    total_tareas: number;
+    tareas_completadas: number;
   }>;
   alertas_recientes: AlertaApi[];
   necesita_atencion: string[];
@@ -59,7 +61,13 @@ export class DashboardService {
     }).pipe(
       map(({ resumen, perfil }) => {
         const objetivos = resumen.objetivos ?? [];
-        const objetivo = objetivos[0];
+        const objetivosActivos = objetivos.filter((item) => item.estado === 'pendiente' || item.estado === 'en_progreso');
+        const objetivo = [...objetivosActivos].sort((a, b) => {
+          if (!a.fecha_limite && !b.fecha_limite) return a.titulo.localeCompare(b.titulo);
+          if (!a.fecha_limite) return 1;
+          if (!b.fecha_limite) return -1;
+          return a.fecha_limite.localeCompare(b.fecha_limite);
+        })[0] ?? objetivos.find((item) => item.estado === 'completado');
         const metasCurso = resumen.cursos
           .map((curso) => curso.nota_objetivo)
           .filter((value): value is number => value !== null);
@@ -85,9 +93,11 @@ export class DashboardService {
           academicGoal: objetivo ? {
             id: objetivo.id_objetivo,
             title: objetivo.titulo,
-            currentValue: objetivo.progreso,
-            targetValue: 100,
+            currentValue: objetivo.tareas_completadas,
+            targetValue: objetivo.total_tareas,
             progressPercentage: objetivo.progreso,
+            totalTasks: objetivo.total_tareas,
+            completedTasks: objetivo.tareas_completadas,
             description: objetivo.descripcion ?? undefined,
             courseId: objetivo.id_curso,
             startDate: objetivo.fecha_inicio,
@@ -95,10 +105,12 @@ export class DashboardService {
             status: objetivo.estado as 'pendiente' | 'en_progreso' | 'completado' | 'cancelado',
           } : {
             id: 0,
-            title: 'Aún no tienes objetivos',
+            title: 'No tienes objetivos activos',
             currentValue: 0,
-            targetValue: 100,
+            targetValue: 0,
             progressPercentage: 0,
+            totalTasks: 0,
+            completedTasks: 0,
             description: 'Crea un objetivo académico para hacer seguimiento a tu avance.',
             courseId: null,
             startDate: '',
